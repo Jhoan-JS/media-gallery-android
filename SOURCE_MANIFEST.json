@@ -859,7 +859,7 @@
       "path": "tools/prepare_semantic.py",
       "sha256": "ec3195f3ab8c759d05f534f2d1aac7f78f28d1868f112bc33cb91df9704e5819",
       "bytes": 6004,
-      "publication_normalized_sha256": "ec3195f3ab8c759d05f534f2d1aac7f78f28d1868f112bc33cb91df9704e5819"
+      "publication_normalized_sha256": "e1b7d6bbfc3c9c2f91aeb26b9ab1e336beb2b99be732f7cf4634d3dd2b061e17"
     },
     {
       "path": "telegram/engine/catalogue.go",
@@ -949,7 +949,7 @@
       "path": "telegram/engine/THIRD_PARTY_NOTICES.txt",
       "sha256": "17f655bffc4d922a93c291c6c68381331c2edd1b4558807124b6c25705d96a95",
       "bytes": 81691,
-      "publication_normalized_sha256": "d01a605496504e784027d0ade3eb8128d9014a394642725304524582725ae2c2"
+      "publication_normalized_sha256": "44ceccb626f6cdd7d4e18718b4e19417c4de44e51d53b598b44a1a89b16f4198"
     },
     {
       "path": "telegram/engine/version.go",
@@ -1012,6 +1012,16 @@
     {
       "path": "telegram/build-engine.ps1",
       "publication_sha256": "498c82a2d89f72e588313a1156682a9831e3b1f74f3592f1ec6f1d4d589f61e7"
+    },
+    {
+      "path": "tools/prepare_semantic.py",
+      "publication_sha256": "e1b7d6bbfc3c9c2f91aeb26b9ab1e336beb2b99be732f7cf4634d3dd2b061e17",
+      "reason": "Retain the bundled Microsoft MIT license instead of downloading an unavailable version-tag URL."
+    },
+    {
+      "path": "telegram/engine/THIRD_PARTY_NOTICES.txt",
+      "publication_sha256": "c82ac5683acd3bae8042e7c6b70ec600a394aae369eae6892c9248abd5ba4e45",
+      "reason": "Include Go mobile and build-tool BSD notices alongside the runtime dependency notices."
     }
   ],
   "excluded_tato_implementation": {

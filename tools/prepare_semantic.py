@@ -36,6 +36,8 @@ def fetch(spec):
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True); STAGE.mkdir(parents=True, exist_ok=True)
+    if not (OUT / 'LICENSE-RUNTIME.txt').is_file():
+        raise FileNotFoundError('Retain the ONNX Runtime license bundled with these sources')
     with ThreadPoolExecutor(max_workers=4) as pool:
         receipt = list(pool.map(fetch, FILES))
     raw = (STAGE / 'projection.safetensors').read_bytes()
@@ -47,7 +49,7 @@ def main():
     (OUT / 'projection.f32').write_bytes(projection)
     receipt.append({'name': 'projection.f32', 'sha256': hashlib.sha256(projection).hexdigest(), 'bytes': len(projection)})
     (OUT / 'PROVENANCE.json').write_text(json.dumps({'models': receipt, 'text_license': 'Apache-2.0', 'vision_license': 'MIT', 'processing': 'CPU on device; no network permission; pinned weights, no user data uploaded'}, indent=2) + '\n')
-    for name, url in [('LICENSE-TEXT.txt','https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/LICENSE'),('LICENSE-VISION.txt','https://raw.githubusercontent.com/openai/CLIP/main/LICENSE'),('LICENSE-RUNTIME.txt','https://raw.githubusercontent.com/microsoft/onnxruntime/v1.28.0/LICENSE')]:
+    for name, url in [('LICENSE-TEXT.txt','https://raw.githubusercontent.com/UKPLab/sentence-transformers/master/LICENSE'),('LICENSE-VISION.txt','https://raw.githubusercontent.com/openai/CLIP/main/LICENSE')]:
         (OUT / name).write_bytes(urllib.request.urlopen(url, timeout=30).read())
     print('All semantic assets verified', flush=True)
 

@@ -20,6 +20,7 @@ La entrega Conector Tato 2.5 se identificó en el proyecto original.
 | Conector TG Android | assembleDebug y assembleRelease completados |
 | Firmas de desarrollo | Ambos APK verificados y con el mismo certificado desechable |
 | Manifiesto final de galería | INTERNET ausente, allowBackup=false, usesCleartextTraffic=false |
+| Preparación de modelos | Prueba sintética con red simulada, licencia local de ONNX Runtime conservada |
 | Lint release de galería | Cero errores y 91 advertencias |
 | Lint release de Conector TG | Cero errores y 12 advertencias |
 
@@ -43,7 +44,8 @@ Quedan pendientes la aceptación en un dispositivo con cuentas de prueba,
 el rendimiento de reproducción en el hardware final y la inferencia con los
 modelos completos. La migración de una instalación ya firmada requiere
 conservar la identidad de firma privada del proyecto y sus respaldos cifrados.
-La elección de la licencia del código propio también sigue pendiente.
+El código propio se publica bajo MIT por autorización de su titular.
+Los avisos de terceros mantienen sus propias condiciones.
 
 Los artefactos y los registros de las pruebas se conservan en la carpeta
 de trabajo de preparación. La copia final de fuentes se obtiene del

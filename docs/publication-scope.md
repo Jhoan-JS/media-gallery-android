@@ -28,3 +28,7 @@ El origen y sus directorios padre carecen de un repositorio Git aplicable.
 Los repositorios históricos presentes en los experimentos de terceros no
 pertenecen a la galería Android. Se creó una historia actual de importación por
 componentes, sin reconstruir fechas ni atribuir a la persona usuaria código ajeno.
+
+El 24 de noviembre de 2026 su titular autorizó publicar esta copia con MIT
+para el código propio y conservar las licencias de terceros.
+Un cuarto commit documenta esa decisión y adapta la presentación del repositorio.

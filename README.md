@@ -1,14 +1,19 @@
-# Tato Galería para Android
+# Media Gallery para Android
 
-Borrador local de publicación de la galería 2.18 y Conector TG 1.1.
-La galería permite explorar catálogos paginados, reproducir medios bajo demanda,
-guardar contenido cifrado sin conexión y organizarlo mediante favoritos,
-Ver después, historial, álbumes, etiquetas, marcadores y archivos.
-Incluye carpetas y chats fijados, portadas de video y respaldo cifrado de esa organización.
+Quería una galería para explorar bibliotecas grandes de fotos y videos sin
+descargarlo todo. Este proyecto empezó con Tato y después incorporó Telegram,
+con almacenamiento cifrado y reconocimiento visual ejecutado en el teléfono.
 
-Esta copia procede de un snapshot del proyecto funcional. Los commits documentan
-su preparación actual. La elección de la licencia del código propio queda pendiente.
-Consulta [el alcance](docs/publication-scope.md) y [los avisos de terceros](THIRD_PARTY_NOTICES.md).
+La galería tiene cuadrícula de medios, reproducción bajo demanda, descargas
+sin conexión, búsqueda, filtros y navegación por fechas. Para organizar el
+contenido añadí favoritos, Ver después, historial, álbumes, etiquetas,
+marcadores, carpetas de chats y portadas de video. Los respaldos cifrados
+conservan también las carpetas y los chats fijados.
+
+Esta publicación parte de la galería 2.18 y Conector TG 1.1. Importé las fuentes
+como un snapshot y conservé ese origen en el historial. El código propio está
+disponible bajo MIT. Las dependencias, el vocabulario y los modelos públicos
+conservan sus licencias. [Alcance](docs/publication-scope.md) · [Licencias y atribuciones](LICENSE_STATUS.md)
 
 ## Componentes
 
@@ -19,10 +24,10 @@ Consulta [el alcance](docs/publication-scope.md) y [los avisos de terceros](THIR
 | connectors/tato | Contrato local del conector Tato y límites de esta distribución |
 | tools | Preparación opcional de modelos públicos y comprobación del contenido publicable |
 
-El cliente Tato modificado y sus empaquetadores requieren una revisión de
-redistribución independiente. Esta copia permite usar archivos propios y el
-conector Telegram compilado. El código consumidor de la interfaz local de Tato
-se conserva en la galería. [Contrato Tato](connectors/tato/README.md)
+Se pueden compilar la galería y el conector Telegram y usar archivos propios.
+La integración Tato incluida se limita al consumidor y a la documentación de
+su interfaz local. El cliente Tato modificado y los empaquetadores quedan fuera
+de esta publicación. [Contrato Tato](connectors/tato/README.md)
 
 ## Requisitos
 
@@ -102,13 +107,17 @@ Los respaldos elegidos por el usuario se cifran con su frase. Los archivos
 originales o copias que el usuario exporte a otro destino quedan sujetos a la
 protección de ese destino. [Formato del respaldo](docs/privacy.md)
 
-## Pruebas y estado de publicación
+## Pruebas y limitaciones
 
 Las pruebas de esta preparación se ejecutan con datos sintéticos y sin cuentas.
 Los resultados y las limitaciones están en [VALIDATION.md](VALIDATION.md).
 La instantánea conserva el comportamiento de la 2.18 en su código de aplicación.
 Los cambios de preparación afectan a compilación, firma de desarrollo y documentación.
 
-Antes de publicar hay que elegir la licencia del código propio y confirmar
-la atribución de sus recursos. Las dependencias mantienen sus licencias y autores.
-Esta carpeta contiene una preparación local de fuentes.
+Las pruebas locales comprueban el código y la compilación. La aceptación en un
+dispositivo y el rendimiento con cuentas y bibliotecas reales requieren
+verificación adicional. El reconocimiento visual necesita preparar los modelos
+antes de compilar. La distribución contiene fuentes y documentación.
+
+El proyecto usa las marcas Tato y Telegram para identificar las integraciones
+y carece de afiliación oficial con esos servicios.
