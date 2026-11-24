@@ -29,7 +29,10 @@ public final class SettingsActivity extends Activity {
             return insets;
         });
         TextView title = new TextView(this);
-        title.setText("Rule34.xxx");
+        final WebSite site;
+        try { site = WebSite.require(getIntent().getStringExtra("site")); }
+        catch (IllegalArgumentException unknown) { finish(); return; }
+        title.setText(site.label);
         title.setTextSize(26);
         title.setAccessibilityHeading(true);
         layout.addView(title);
@@ -41,7 +44,7 @@ public final class SettingsActivity extends Activity {
         status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
         layout.addView(status);
         final WebSettings settings;
-        try { settings = WebSettings.get(this); }
+        try { settings = WebSettings.get(this, site); }
         catch (Exception unavailable) { status.setText("No se pudo abrir el almacén cifrado."); return; }
         WebSettings.Config current = settings.config();
         boolean authorized = false;
@@ -74,7 +77,12 @@ public final class SettingsActivity extends Activity {
         } else {
             status.setText(current != null && current.enabled
                     ? "Autorizado. Usa el selector de fuentes de la galería para buscar."
-                    : "Fuente apagada. Abre Fuentes web desde la galería para configurarla.");
+                    : "Fuente apagada. Selecciónala en la galería para configurarla.");
+            WebSite other = site == WebSite.GELBOORU ? WebSite.RULE34 : WebSite.GELBOORU;
+            button(layout, "Configurar " + other.label).setOnClickListener(view -> {
+                startActivity(new android.content.Intent(this, SettingsActivity.class).putExtra("site", other.id));
+                finish();
+            });
         }
         Button disable = button(layout, "Revocar y apagar");
         disable.setOnClickListener(view -> {

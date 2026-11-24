@@ -8,6 +8,10 @@ public final class SourceIdTest {
         assertTrue(SourceId.vault(WebSource.KEY).matches("[a-z-]+"));
         assertNotEquals(SourceId.database("tato"), SourceId.database(WebSource.KEY));
         assertNotEquals(SourceId.database("telegram"), SourceId.database(WebSource.KEY));
+        assertTrue(SourceId.vault(WebSource.GELBOORU).matches("[a-z-]+"));
+        assertNotEquals(SourceId.vault(WebSource.KEY), SourceId.vault(WebSource.GELBOORU));
+        assertNotEquals(SourceId.database(WebSource.KEY), SourceId.database(WebSource.GELBOORU));
+        assertNotEquals(SourceId.preferences(WebSource.KEY), SourceId.preferences(WebSource.GELBOORU));
     }
     @Test public void untrustedSourceCannotChooseStoragePath(){for(String key:new String[]{null,"", "../tato", "Telegram", "owner", "telegram/../vault"}){try{SourceId.require(key);fail("accepted "+key);}catch(IllegalArgumentException expected){}}}
 }

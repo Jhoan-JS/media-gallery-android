@@ -24,10 +24,17 @@ final class UiSource {
             RadioButton radio=new RadioButton(a);radio.setChecked(key.equals(screenKey(a)));radio.setClickable(false);radio.setFocusable(false);radio.setImportantForAccessibility(android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO);row.addView(radio);panel.addView(row,new LinearLayout.LayoutParams(-1,GalleryUi.dp(a,72)));
             row.setOnClickListener(v->{a.getSharedPreferences("gallery-appearance",Context.MODE_PRIVATE).edit().putString("source",key).apply();dialog.dismiss();changed.run();});
         }
-        Button web=GalleryUi.button(a,WebLibraryActivity.linked(a)?"Rule34.xxx":"Fuentes web",false);
-        web.setOnClickListener(v->{dialog.dismiss();if(!(a instanceof WebLibraryActivity))a.startActivity(WebLibraryActivity.intent(a));});
-        panel.addView(web,new LinearLayout.LayoutParams(-1,GalleryUi.dp(a,48)));
-        Button close=GalleryUi.button(a,"Cerrar",false);close.setOnClickListener(v->dialog.dismiss());panel.addView(close,new LinearLayout.LayoutParams(-1,GalleryUi.dp(a,48)));dialog.setContentView(panel);dialog.show();
+        for(String key:new String[]{WebSource.KEY,WebSource.GELBOORU}){
+            Button web=GalleryUi.button(a,SourceId.label(key),false);
+            web.setOnClickListener(v->{
+                dialog.dismiss();
+                if(key.equals(screenKey(a)))return;
+                a.startActivity(WebLibraryActivity.intent(a,key));
+                if(a instanceof WebLibraryActivity)a.finish();
+            });
+            panel.addView(web,new LinearLayout.LayoutParams(-1,GalleryUi.dp(a,48)));
+        }
+        Button close=GalleryUi.button(a,"Cerrar",false);close.setOnClickListener(v->dialog.dismiss());panel.addView(close,new LinearLayout.LayoutParams(-1,GalleryUi.dp(a,48)));ScrollView scroll=new ScrollView(a);scroll.addView(panel);dialog.setContentView(scroll);dialog.show();
         android.view.Window window=dialog.getWindow();if(window!=null){window.setBackgroundDrawableResource(android.R.color.transparent);window.setGravity(Gravity.BOTTOM);window.setLayout(-1,-2);}
     }
 }

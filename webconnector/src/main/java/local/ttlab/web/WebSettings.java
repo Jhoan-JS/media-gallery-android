@@ -10,7 +10,8 @@ import org.json.JSONObject;
 final class WebSettings {
     static final String GALLERY = "local.ttlab.gallery";
     static final String PERMISSION = "local.ttlab.permission.WEB";
-    private static WebSettings instance;
+    private static final java.util.EnumMap<WebSite, WebSettings> INSTANCES = new java.util.EnumMap<>(WebSite.class);
+    final WebSite site;
     final WebNetwork network;
     private final SecureStore store;
     private Config config;
@@ -26,9 +27,10 @@ final class WebSettings {
         }
     }
 
-    private WebSettings(Context context) throws Exception {
-        network = new WebNetwork(context);
-        store = new SecureStore(context, "web");
+    private WebSettings(Context context, WebSite site) throws Exception {
+        this.site = site;
+        network = new WebNetwork(context, site);
+        store = new SecureStore(context, site.directory);
         byte[] bytes = store.get("settings");
         if (bytes != null) {
             try {
@@ -39,9 +41,13 @@ final class WebSettings {
         }
     }
 
-    static synchronized WebSettings get(Context context) throws Exception {
-        if (instance == null) instance = new WebSettings(context.getApplicationContext());
-        return instance;
+    static synchronized WebSettings get(Context context, WebSite site) throws Exception {
+        WebSettings settings = INSTANCES.get(site);
+        if (settings == null) {
+            settings = new WebSettings(context.getApplicationContext(), site);
+            INSTANCES.put(site, settings);
+        }
+        return settings;
     }
 
     static void requireCaller(Context context, String name, int uid) {
@@ -82,7 +88,7 @@ final class WebSettings {
             throw new IllegalArgumentException("E_WEB_CREDENTIALS");
         }
         if (config != null && !config.user.equals(user)) throw new IllegalArgumentException("E_WEB_ACCOUNT");
-        save(new Config(user, key, WebNetwork.digest("rule34:" + user), true));
+        save(new Config(user, key, WebNetwork.digest(site.id + ":" + user), true));
     }
 
     synchronized void disable() throws Exception {

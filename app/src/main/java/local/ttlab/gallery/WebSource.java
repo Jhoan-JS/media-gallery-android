@@ -19,18 +19,32 @@ import java.util.concurrent.Executors;
 final class WebSource extends Source {
     static final String PACKAGE = "local.ttlab.web";
     static final String KEY = "web-rule-thirty-four";
+    static final String GELBOORU = "web-gelbooru";
     private static final Uri BRIDGE = Uri.parse("content://local.ttlab.web.bridge");
     private static final int RANGE = 4 * CHUNK;
     private final ContentResolver resolver;
+    private final android.content.pm.PackageManager packages;
+    private final boolean gelbooru;
     private final ExecutorService cancellations = Executors.newSingleThreadExecutor();
 
-    WebSource(Context context, Vault vault, Library library) {
+    WebSource(Context context, Vault vault, Library library, String source) {
         super(context, vault, library, PACKAGE, BRIDGE.getAuthority(), true, "Web");
         resolver = context.getContentResolver();
+        packages = context.getPackageManager();
+        gelbooru = GELBOORU.equals(source);
     }
 
-    static Intent configure() {
-        return new Intent().setComponent(new ComponentName(PACKAGE, PACKAGE + ".SettingsActivity"));
+    Intent configure() {
+        Intent settings = new Intent().setComponent(new ComponentName(PACKAGE, PACKAGE + ".SettingsActivity"));
+        if (gelbooru) settings.putExtra("site", "gelbooru");
+        return settings;
+    }
+
+    @Override void guard() throws Exception {
+        super.guard();
+        if (gelbooru && packages.getPackageInfo(PACKAGE, 0).getLongVersionCode() < 2) {
+            throw new IOException("E_WEB_UPDATE");
+        }
     }
 
     boolean enabled() throws Exception {
@@ -84,7 +98,7 @@ final class WebSource extends Source {
 
     private Cursor query(Uri target, CancellationSignal cancel) throws Exception {
         guard();
-        Cursor row = resolver.query(target, null, null, null, null, cancel);
+        Cursor row = resolver.query(siteUri(target), null, null, null, null, cancel);
         if (row == null) throw new IOException("E_WEB_CONNECTOR");
         try {
             String code = row.getExtras().getString("error");
@@ -136,7 +150,7 @@ final class WebSource extends Source {
                 .appendQueryParameter("length", Integer.toString(length));
         int max = thumbnail ? CHUNK : length;
         cancel.throwIfCanceled();
-        try (InputStream input = openStream(builder.build(), cancel)) {
+        try (InputStream input = openStream(siteUri(builder.build()), cancel)) {
             if (input == null) throw new IOException("E_WEB_CONNECTOR");
             cancel.setOnCancelListener(() -> cancellations.execute(() -> {
                 try { resolver.call(BRIDGE, "cancel", token, null); } catch (RuntimeException ignored) { }
@@ -158,9 +172,14 @@ final class WebSource extends Source {
         } finally { cancel.setOnCancelListener(null); }
     }
 
+    private Uri siteUri(Uri target) {
+        return gelbooru ? target.buildUpon().appendQueryParameter("site", "gelbooru").build() : target;
+    }
+
     static String message(Exception failure) {
         String code = failure.getMessage();
         if (code == null) code = "";
+        if (code.contains("E_WEB_UPDATE")) return "Actualiza Conector Web a la versión 1.1 o posterior para usar Gelbooru.";
         if (code.contains("E_WEB_NO_RANGES")) return "El servidor no permite adelantar este video.";
         if (code.contains("E_WEB_LIMIT") || code.contains("E_WEB_BUSY")) return "El sitio limitó las solicitudes. Espera y reintenta.";
         if (code.contains("E_WEB_NO_STORE")) return "La respuesta del sitio no permite guardar estos datos en caché.";

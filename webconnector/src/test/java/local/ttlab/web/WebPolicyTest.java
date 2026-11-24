@@ -6,12 +6,31 @@ import org.junit.Test;
 
 public class WebPolicyTest {
     @Test public void validatesMediaHostsAndKeepsCredentialsOutOfMediaUrls() throws Exception {
-        assertEquals("api-cdn-mp4.rule34.xxx", WebPolicy.media("https://api-cdn-mp4.rule34.xxx/images/a.mp4").getHost());
+        assertEquals("api-cdn-mp4.rule34.xxx", WebPolicy.media(WebSite.RULE34, "https://api-cdn-mp4.rule34.xxx/images/a.mp4").getHost());
         for (String address : new String[]{"http://api-cdn.rule34.xxx/a.jpg", "https://api-cdn.rule34.xxx.evil.example/a.jpg",
                 "https://api-cdn.rule34.xxx@evil.example/a.jpg", "https://api-cdn.rule34.xxx:8443/a.jpg",
                 "https://api-cdn.rule34.xxx/a.jpg?api_key=secret", "https://127.0.0.1/a.jpg"}) {
-            assertThrows(IllegalArgumentException.class, () -> WebPolicy.media(address));
+            assertThrows(IllegalArgumentException.class, () -> WebPolicy.media(WebSite.RULE34, address));
         }
+    }
+
+    @Test public void isolatesGelbooruMediaAndAcceptsOnlyGeneralLabels() {
+        assertEquals("video/webm", WebPolicy.mime(WebPolicy.media(WebSite.GELBOORU,
+                "https://img3.gelbooru.com/images/aa/bb/example.webm")));
+        assertThrows(IllegalArgumentException.class, () -> WebPolicy.media(WebSite.GELBOORU,
+                "https://api-cdn.rule34.xxx/images/example.mp4"));
+        assertThrows(IllegalArgumentException.class, () -> WebPolicy.media(WebSite.RULE34,
+                "https://img3.gelbooru.com/images/example.mp4"));
+        assertThrows(IllegalArgumentException.class, () -> WebPolicy.media(WebSite.GELBOORU,
+                "https://img3.gelbooru.com.evil.example/images/example.mp4"));
+        assertThrows(IllegalArgumentException.class, () -> WebPolicy.media(WebSite.GELBOORU,
+                "https://img3.gelbooru.com/index.php"));
+        assertEquals("blue_sky rating:general", WebPolicy.query(WebSite.GELBOORU, "blue_sky"));
+        assertTrue(WebSite.GELBOORU.acceptsRating("general"));
+        assertTrue(WebSite.GELBOORU.acceptsRating("g"));
+        assertFalse(WebSite.GELBOORU.acceptsRating("sensitive"));
+        assertTrue(WebSite.RULE34.acceptsRating("safe"));
+        assertFalse(WebSite.RULE34.acceptsRating("general"));
     }
 
     @Test public void acceptsOnlyExactByteRanges() throws Exception {
@@ -23,9 +42,9 @@ public class WebPolicyTest {
     }
 
     @Test public void searchNeverBecomesAFullCatalogueScan() {
-        assertEquals("blue_sky -clouds rating:safe", WebPolicy.query("  blue_sky   -clouds "));
-        assertThrows(IllegalArgumentException.class, () -> WebPolicy.query(" "));
-        assertThrows(IllegalArgumentException.class, () -> WebPolicy.query("-clouds"));
-        assertThrows(IllegalArgumentException.class, () -> WebPolicy.query("blue_sky rating:explicit"));
+        assertEquals("blue_sky -clouds rating:safe", WebPolicy.query(WebSite.RULE34, "  blue_sky   -clouds "));
+        assertThrows(IllegalArgumentException.class, () -> WebPolicy.query(WebSite.RULE34, " "));
+        assertThrows(IllegalArgumentException.class, () -> WebPolicy.query(WebSite.RULE34, "-clouds"));
+        assertThrows(IllegalArgumentException.class, () -> WebPolicy.query(WebSite.RULE34, "blue_sky rating:explicit"));
     }
 }

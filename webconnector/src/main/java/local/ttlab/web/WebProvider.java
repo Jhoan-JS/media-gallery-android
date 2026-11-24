@@ -45,9 +45,9 @@ public final class WebProvider extends ContentProvider {
         return true;
     }
 
-    private WebSettings settings() throws Exception {
+    private WebSettings settings(Uri uri) throws Exception {
         WebSettings.requireProvider(getContext(), getCallingPackage());
-        return WebSettings.get(getContext());
+        return WebSettings.get(getContext(), WebSite.require(uri.getQueryParameter("site")));
     }
 
     @Override public Cursor query(Uri uri, String[] projection, String selection, String[] args, String sort) {
@@ -59,7 +59,7 @@ public final class WebProvider extends ContentProvider {
         List<String> path = uri.getPathSegments();
         CancellationSignal signal = cancellation == null ? new CancellationSignal() : cancellation;
         try {
-            WebSettings settings = settings();
+            WebSettings settings = settings(uri);
             if (selection != null || args != null || sort != null || projection != null) throw new IllegalArgumentException();
             if (path.equals(List.of("status"))) {
                 MatrixCursor cursor = new MatrixCursor(new String[]{"enabled"});
@@ -95,7 +95,7 @@ public final class WebProvider extends ContentProvider {
                 WebNetwork.Representation rep = settings.network.describe(post, generation, signal);
                 settings.network.current(generation);
                 synchronized (media) {
-                    media.put(post.id + "/" + rep.version, new Media(generation, post, rep));
+                    media.put(settings.site.id + "/" + post.id + "/" + rep.version, new Media(generation, post, rep));
                     if (media.size() > 8) media.remove(media.keySet().iterator().next());
                 }
                 MatrixCursor cursor = new MatrixCursor(new String[]{"size", "version"});
@@ -126,7 +126,7 @@ public final class WebProvider extends ContentProvider {
             throws FileNotFoundException {
         try {
             if (!"r".equals(mode)) throw new IllegalArgumentException("E_WEB_REQUEST");
-            WebSettings settings = settings();
+            WebSettings settings = settings(uri);
             WebSettings.Config config = settings.active(required(uri, "account", "[0-9a-f]{64}"));
             long generation = settings.generation(config);
             List<String> parts = uri.getPathSegments();
@@ -175,7 +175,7 @@ public final class WebProvider extends ContentProvider {
                 bytes = settings.network.thumbnail(post, generation, signal);
             } else {
                 Media found;
-                synchronized (media) { found = media.get(id + "/" + version); }
+                synchronized (media) { found = media.get(settings.site.id + "/" + id + "/" + version); }
                 if (found == null || found.generation != generation || !revision.equals(found.post.revision)) {
                     throw new IOException("E_WEB_REOPEN");
                 }

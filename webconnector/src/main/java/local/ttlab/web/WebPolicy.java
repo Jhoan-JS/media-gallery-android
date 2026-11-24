@@ -17,19 +17,27 @@ final class WebPolicy {
             "api-cdn-us-mp4.rule34.xxx");
     private static final Pattern CONTENT_RANGE = Pattern.compile("bytes ([0-9]+)-([0-9]+)/([0-9]+)");
 
-    static URI media(String address) {
+    static URI media(WebSite site, String address) {
         if (address.length() > 2048) throw new IllegalArgumentException("E_WEB_MEDIA_URL");
         URI uri = URI.create(address);
         if (!"https".equals(uri.getScheme()) || uri.getHost() == null ||
-                !MEDIA_HOSTS.contains(uri.getHost()) || uri.getPort() != -1 ||
+                !mediaHost(site, uri.getHost()) || uri.getPort() != -1 ||
                 uri.getRawUserInfo() != null || uri.getRawFragment() != null ||
                 uri.getRawQuery() != null || uri.getRawPath().length() < 2) {
+            throw new IllegalArgumentException("E_WEB_MEDIA_URL");
+        }
+        if (site == WebSite.GELBOORU && !uri.getRawPath().matches("/(?:images|thumbnails|samples|videos)/[^?#]+")) {
             throw new IllegalArgumentException("E_WEB_MEDIA_URL");
         }
         return uri;
     }
 
-    static String query(String input) {
+    private static boolean mediaHost(WebSite site, String host) {
+        if (site == WebSite.RULE34) return MEDIA_HOSTS.contains(host);
+        return host.matches("(?:s?img[1-9][0-9]?|s?img|video|cdn)\\.gelbooru\\.com");
+    }
+
+    static String query(WebSite site, String input) {
         if (input == null) throw new IllegalArgumentException("E_WEB_TAGS");
         String tags = input.trim();
         if (tags.length() > 320 || tags.isEmpty()) throw new IllegalArgumentException("E_WEB_TAGS");
@@ -43,11 +51,7 @@ final class WebPolicy {
             }
         }
         if (!positive) throw new IllegalArgumentException("E_WEB_TAGS");
-        return String.join(" ", words) + " rating:safe";
-    }
-
-    static boolean safeRating(String rating) {
-        return "s".equals(rating) || "safe".equals(rating);
+        return String.join(" ", words) + " rating:" + site.rating;
     }
 
     static String mime(URI uri) {

@@ -67,7 +67,10 @@ final class VariantTransport {
             connected = true;
         }
 
-        private boolean isApi() { return "api.rule34.xxx".equals(uri.getHost()); }
+        private boolean isApi() {
+            return ("api.rule34.xxx".equals(uri.getHost()) || "gelbooru.com".equals(uri.getHost()))
+                    && "/index.php".equals(uri.getPath());
+        }
 
         private String json() throws IOException {
             Uri target = Uri.parse(uri.toASCIIString());
@@ -75,22 +78,36 @@ final class VariantTransport {
             String tags = target.getQueryParameter("tags");
             String page = target.getQueryParameter("pid");
             try {
+                boolean gelbooru = "gelbooru.com".equals(uri.getHost());
+                String expectedTag = gelbooru ? "fixture_gelbooru" : "fixture_gallery";
+                String expectedRating = gelbooru ? "rating:general" : "rating:safe";
+                if (tags == null || !tags.endsWith(expectedRating)
+                        || (gelbooru && !"gel_fixture_key".equals(target.getQueryParameter("api_key")))) {
+                    throw new IOException("Fixture request did not match its site");
+                }
                 JSONArray rows = new JSONArray();
-                if (id != null) rows.put(row(Integer.parseInt(id)));
-                else if (tags != null && tags.contains("fixture_gallery")) {
+                if (id != null) rows.put(row(Integer.parseInt(id), gelbooru));
+                else if (tags.contains(expectedTag)) {
                     int high = "0".equals(page) ? 100 : 70;
                     int low = "0".equals(page) ? 71 : 63;
-                    for (int n = high; n >= low; n--) rows.put(row(n));
+                    for (int n = high; n >= low; n--) rows.put(row(n, gelbooru));
                 }
-                return rows.toString();
+                if (!gelbooru) return rows.toString();
+                JSONObject envelope = new JSONObject().put("@attributes", new JSONObject()
+                        .put("count", rows.length() == 0 ? 0 : 38).put("offset", "1".equals(page) ? 30 : 0));
+                if (rows.length() > 0) envelope.put("post", rows);
+                return envelope.toString();
             } catch (Exception invalid) { throw new IOException("Fixture failed"); }
         }
 
-        private static JSONObject row(int id) throws Exception {
-            return new JSONObject().put("id", id).put("rating", "safe").put("change", 1780000000 + id)
-                    .put("tags", "fixture_gallery blue_sky").put("width", 640).put("height", 360)
-                    .put("file_url", "https://api-cdn.rule34.xxx/test/" + id + (id % 2 == 0 ? ".mp4" : ".png"))
-                    .put("preview_url", "https://api-cdn.rule34.xxx/test/" + id + "-thumb.png");
+        private static JSONObject row(int id, boolean gelbooru) throws Exception {
+            String origin = gelbooru ? "https://img3.gelbooru.com/images/" : "https://api-cdn.rule34.xxx/test/";
+            String rating = gelbooru ? (id == 99 ? "sensitive" : "general") : "safe";
+            String tags = gelbooru ? "fixture_gelbooru blue_sky" : "fixture_gallery blue_sky";
+            return new JSONObject().put("id", id).put("rating", rating).put("change", 1780000000 + id)
+                    .put("tags", tags).put("width", 640).put("height", 360)
+                    .put("file_url", origin + id + (id % 2 == 0 ? ".mp4" : ".png"))
+                    .put("preview_url", origin + id + "-thumb.png");
         }
 
         @Override public int getResponseCode() throws IOException { connect(); return status; }

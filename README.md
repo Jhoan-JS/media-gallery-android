@@ -39,10 +39,10 @@ different certificate from the public release.
 The current gallery allows Android user IDs 0, 14, and 15. User 0 is the usual
 primary user; other secondary user IDs are not supported by this version.
 
-## Optional web source
+## Optional web sources
 
-Gallery 2.19 adds a separate, optional Web Connector. It appears in the source
-picker as **Fuentes web** and is disabled until configured on the device.
+Gallery 2.20 and Web Connector 1.1 add Gelbooru to the source picker alongside
+Rule34.xxx. Each site stays disabled until configured on the device.
 The [connector guide](webconnector/README.md) covers setup, privacy and limits.
 
 ## What works without an account

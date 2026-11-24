@@ -21,9 +21,12 @@ import org.json.JSONObject;
 final class WebNetwork {
     private final android.content.Context context;
 
-    WebNetwork(android.content.Context context) { this.context = context; }
+    private final WebSite site;
 
-    private static final URI API = URI.create("https://api.rule34.xxx/index.php");
+    WebNetwork(android.content.Context context, WebSite site) {
+        this.context = context;
+        this.site = site;
+    }
     private final Set<HttpURLConnection> active = new HashSet<>();
     private final LinkedHashMap<Integer, Post> known = new LinkedHashMap<>(32, .75f, true);
     private long epoch;
@@ -46,17 +49,17 @@ final class WebNetwork {
         final long date;
         final String tags, mime, revision;
         final URI file, thumb;
-        Post(JSONObject row) throws Exception {
+        Post(WebSite site, JSONObject row) throws Exception {
             id = row.getInt("id");
-            if (id <= 0 || !WebPolicy.safeRating(row.optString("rating"))) {
+            if (id <= 0 || !site.acceptsRating(row.optString("rating"))) {
                 throw new IllegalArgumentException("E_WEB_POST");
             }
-            file = WebPolicy.media(row.getString("file_url"));
+            file = WebPolicy.media(site, row.getString("file_url"));
             mime = WebPolicy.mime(file);
             if (mime.isEmpty()) throw new IllegalArgumentException("E_WEB_MEDIA_TYPE");
             URI preview = null;
             try {
-                URI candidate = WebPolicy.media(row.optString("preview_url"));
+                URI candidate = WebPolicy.media(site, row.optString("preview_url"));
                 if (WebPolicy.mime(candidate).startsWith("image/")) preview = candidate;
             } catch (IllegalArgumentException missing) { /* A preview is optional. */ }
             thumb = preview;
@@ -65,6 +68,13 @@ final class WebNetwork {
             long timestamp = 0;
             JSONObject change = row.optJSONObject("change");
             if (change == null) timestamp = row.optLong("change");
+            if (timestamp == 0 && site == WebSite.GELBOORU) {
+                try {
+                    timestamp = java.time.ZonedDateTime.parse(row.optString("created_at"),
+                            java.time.format.DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss Z uuuu", Locale.US))
+                            .toEpochSecond();
+                } catch (java.time.DateTimeException ignored) { /* Date is optional. */ }
+            }
             date = timestamp >= 1_000_000_000L && timestamp <= 4_102_444_800L ? timestamp : 0;
             String text = row.optString("tags").replaceAll("[\\p{Cntrl}]", " ");
             tags = text.substring(0, Math.min(2048, text.length()));
@@ -114,7 +124,7 @@ final class WebNetwork {
     Page search(WebSettings.Config config, long generation, String tags, int page,
                 CancellationSignal cancel) throws Exception {
         if (page < 0 || page >= WebPolicy.MAX_PAGES) throw new IllegalArgumentException("E_WEB_PAGE");
-        JSONArray rows = request(config, generation, "tags=" + encode(WebPolicy.query(tags)) +
+        JSONArray rows = request(config, generation, "tags=" + encode(WebPolicy.query(site, tags)) +
                 "&pid=" + page + "&limit=" + WebPolicy.PAGE_SIZE, cancel);
         ArrayList<Post> posts = new ArrayList<>();
         Set<Integer> encountered = new HashSet<>();
@@ -122,7 +132,7 @@ final class WebNetwork {
             JSONObject row = rows.optJSONObject(index);
             if (row == null) continue;
             try {
-                Post post = new Post(row);
+                Post post = new Post(site, row);
                 if (encountered.add(post.id)) posts.add(post);
             } catch (IllegalArgumentException | org.json.JSONException ignored) {
                 // Unsupported or unclassified entries do not leave the connector.
@@ -143,9 +153,9 @@ final class WebNetwork {
             post = known.get(id);
         }
         if (post == null) {
-            JSONArray rows = request(config, generation, "id=" + id + "&limit=1&tags=rating%3Asafe", cancel);
+            JSONArray rows = request(config, generation, "id=" + id + "&limit=1&tags=" + encode("rating:" + site.rating), cancel);
             if (rows.length() != 1) throw new IOException("E_WEB_MISSING");
-            post = new Post(rows.getJSONObject(0));
+            post = new Post(site, rows.getJSONObject(0));
             if (post.id != id) throw new IOException("E_WEB_MISSING");
             synchronized (this) {
                 current(generation);
@@ -164,7 +174,7 @@ final class WebNetwork {
     private JSONArray request(WebSettings.Config config, long generation, String parameters,
                               CancellationSignal cancel) throws Exception {
         awaitSlot(generation, cancel, true);
-        URI url = URI.create(API + "?page=dapi&s=post&q=index&json=1&" + parameters
+        URI url = URI.create(site.api + "?page=dapi&s=post&q=index&json=1&" + parameters
                 + "&user_id=" + encode(config.user) + "&api_key=" + encode(config.key));
         try (Exchange exchange = open(url, generation, cancel)) {
             HttpURLConnection connection = exchange.connection;
@@ -175,8 +185,7 @@ final class WebNetwork {
             checkCachePolicy(connection);
             String payload = new String(read(connection, 2 * 1024 * 1024, -1, cancel),
                     StandardCharsets.UTF_8).trim();
-            if (!payload.startsWith("[")) throw new IOException("E_WEB_API");
-            JSONArray rows = new JSONArray(payload);
+            JSONArray rows = site.posts(payload);
             if (rows.length() > WebPolicy.PAGE_SIZE) throw new IOException("E_WEB_API");
             return rows;
         }
@@ -319,7 +328,7 @@ final class WebNetwork {
         connection.setConnectTimeout(7000);
         connection.setReadTimeout(9000);
         connection.setRequestProperty("Accept-Encoding", "identity");
-        connection.setRequestProperty("User-Agent", "MediaGallery-Android/2.19 (optional web connector)");
+        connection.setRequestProperty("User-Agent", "MediaGallery-Android/2.20 (optional web connector)");
         synchronized (this) {
             current(generation);
             if (active.size() >= 6) throw new IOException("E_WEB_BUSY");

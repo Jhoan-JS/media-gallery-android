@@ -33,12 +33,8 @@ public final class WebLibraryActivity extends SecureActivity {
     private boolean active, enabled, moreAllowed;
     private CancellationSignal request;
 
-    static Intent intent(Context context) {
-        return new Intent(context, WebLibraryActivity.class).putExtra("source", WebSource.KEY);
-    }
-
-    static boolean linked(Context context) {
-        return context.getSharedPreferences("gallery-appearance", MODE_PRIVATE).getBoolean("web-linked", false);
+    static Intent intent(Context context, String source) {
+        return new Intent(context, WebLibraryActivity.class).putExtra("source", SourceId.require(source));
     }
 
     @Override protected void onCreate(Bundle saved) {
@@ -174,12 +170,14 @@ public final class WebLibraryActivity extends SecureActivity {
         int generation = ++revision;
         state.database.execute(() -> {
             boolean found = false;
-            try { found = web.enabled(); } catch (Exception unavailable) { }
+            String setupMessage = "Habilita " + SourceId.label(state.key) + " para buscar.";
+            try { found = web.enabled(); }
+            catch (Exception unavailable) { setupMessage = connectorMessage(unavailable); }
             final boolean result = found;
+            final String message = setupMessage;
             runOnUiThread(() -> {
                 if (!ready() || revision != generation) return;
                 enabled = result;
-                linked(result);
                 if (enabled && pendingTag != null) {
                     terms.setText(pendingTag);
                     pendingTag = null;
@@ -187,30 +185,29 @@ public final class WebLibraryActivity extends SecureActivity {
                 } else if (enabled) render("");
                 else {
                     closeGrid();
-                    status.setText("Instala Conector Web y habilita Rule34.xxx para buscar.");
+                    status.setText(message);
                     controls();
                 }
             });
         });
     }
 
-    private void linked(boolean value) {
-        getSharedPreferences("gallery-appearance", MODE_PRIVATE).edit().putBoolean("web-linked", value).apply();
+    private static String connectorMessage(Exception unavailable) {
+        if (unavailable instanceof SecurityException) return "Instala Conector Web con la misma firma en este perfil.";
+        return WebSource.message(unavailable);
     }
 
     private void setup() {
         if (!ready()) return;
         try {
             web.guard();
-            startActivityForResult(WebSource.configure(), SETUP);
-        } catch (Exception unavailable) { status.setText("Instala Conector Web con la misma firma en este perfil."); }
+            startActivityForResult(web.configure(), SETUP);
+        } catch (Exception unavailable) { status.setText(connectorMessage(unavailable)); }
     }
 
     @Override protected void onActivityResult(int code, int result, Intent data) {
         super.onActivityResult(code, result, data);
-        if (code == SETUP && result != Activity.RESULT_CANCELED) {
-            linked(result == Activity.RESULT_OK);
-        } else if (code == VIEWER && result == Activity.RESULT_OK && data != null) {
+        if (code == VIEWER && result == Activity.RESULT_OK && data != null) {
             String tag = data.getStringExtra("web-tag");
             if (tag != null) {
                 pendingTag = tag;
