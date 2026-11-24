@@ -1,0 +1,1023 @@
+{
+  "baseline": "Android gallery 2.18, versionCode 20; Telegram connector 1.1, versionCode 2",
+  "release_apk_sha256": "3746dc4286bfefab2e68e7194ec2864a6ae1f2565961fa47edf36bc4fe3064ec",
+  "history": "Source snapshot. No original Git history found at the source root or its parent directories.",
+  "copied": [
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/BackupArchive.java",
+      "sha256": "51b736ec6bce72f9910ac7e8e05973d76d82701d7d02889058cc51bad1cec756",
+      "bytes": 9646,
+      "publication_normalized_sha256": "51b736ec6bce72f9910ac7e8e05973d76d82701d7d02889058cc51bad1cec756"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/BiometricUnlock.java",
+      "sha256": "24eb66bb1bd288d867464a39e6938142c9f58fa0e95bbe1f42a3bcd29f5b093c",
+      "bytes": 15113,
+      "publication_normalized_sha256": "7bdff845c9cb417415ba1cd30b0f3c0f90ab550d7adb5f13a8de97a9b31ffd0a"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/BufferedMediaSource.java",
+      "sha256": "236f0499e7f5db43b2742c5cd7501c9590a5c86cf3503f30c1fd71aad8ae87c9",
+      "bytes": 6026,
+      "publication_normalized_sha256": "2ab0a566071fc1a317a30a6e08b46ec543f24bb66f55d8350bbd0a399f433b5c"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/ChatFolders.java",
+      "sha256": "3d9428fc8ca81e28df135ad7f3db8cf4bd7c709d2023f1e8c615c3aacfa9a919",
+      "bytes": 7067,
+      "publication_normalized_sha256": "3d9428fc8ca81e28df135ad7f3db8cf4bd7c709d2023f1e8c615c3aacfa9a919"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/ChunkCipher.java",
+      "sha256": "1aa201062cc97193d9be85e277b3cb6d2290890e8bc899f55a54453e7f81cd43",
+      "bytes": 1345,
+      "publication_normalized_sha256": "1aa201062cc97193d9be85e277b3cb6d2290890e8bc899f55a54453e7f81cd43"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/CombinedSearch.java",
+      "sha256": "679cad48995e0eda67f5d5051035432b68d862c54da0a8c84ebd347c906a726b",
+      "bytes": 1386,
+      "publication_normalized_sha256": "679cad48995e0eda67f5d5051035432b68d862c54da0a8c84ebd347c906a726b"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/CombinedSearchActivity.java",
+      "sha256": "39716b326d9bfbfeea2e1f9bf5e26f034443f15f2b619dcb49e20b270a949a96",
+      "bytes": 14766,
+      "publication_normalized_sha256": "39716b326d9bfbfeea2e1f9bf5e26f034443f15f2b619dcb49e20b270a949a96"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/ConnectionMessage.java",
+      "sha256": "603935d73b9ba88ad5dd4de9ac8e6e26d94af38278994a096c2742eec9ca668f",
+      "bytes": 3784,
+      "publication_normalized_sha256": "603935d73b9ba88ad5dd4de9ac8e6e26d94af38278994a096c2742eec9ca668f"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/ConnectionRetry.java",
+      "sha256": "1910c49dd65d978e33192043481209054cbb3f682198486cea0d1372b917b783",
+      "bytes": 2081,
+      "publication_normalized_sha256": "1910c49dd65d978e33192043481209054cbb3f682198486cea0d1372b917b783"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/ConnectorAuthActivity.java",
+      "sha256": "76ae8717a58f1ab75580a1a280080aecdba85b0bb8fed260dfcc0e16a6cbb99c",
+      "bytes": 1357,
+      "publication_normalized_sha256": "41b86e9132abce5c497ca20e9005834a0038816c11ab0d8ca9ee5f0841c6156c"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/DateSections.java",
+      "sha256": "0d209388e1ee6bfcd2c0b61f0028cf95e37142160ebabcb5e92d84ab85bbc130",
+      "bytes": 1335,
+      "publication_normalized_sha256": "8a6fc2aab490ee71e9679eca2f6f741d480f31b6e1ff89ff2bea1b160048b45c"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/DownloadProgress.java",
+      "sha256": "f14999c62e4c8c2e1761168a2825879aea2a7ad7076c486bc5377aeb3bc4781e",
+      "bytes": 1199,
+      "publication_normalized_sha256": "f14999c62e4c8c2e1761168a2825879aea2a7ad7076c486bc5377aeb3bc4781e"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/DownloadsActivity.java",
+      "sha256": "19554db003dd0059c19c9e3f454163f430d5c3f85b5dfd1b105a513067dc054e",
+      "bytes": 14497,
+      "publication_normalized_sha256": "19554db003dd0059c19c9e3f454163f430d5c3f85b5dfd1b105a513067dc054e"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/DownloadService.java",
+      "sha256": "4a02e7d7e50199cbabf91b80eef63809db648f886b9b175826f6ce6c1aa33ca5",
+      "bytes": 17781,
+      "publication_normalized_sha256": "b8cd4b919d0cb7e2b8246d7c87e807d5dc933e8be7cd3bc9babb28cdf7d93c62"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/ForegroundWork.java",
+      "sha256": "29b4df541f84607075eaadd108935044ea5e2714b706bac985f52e6efb1dadd8",
+      "bytes": 635,
+      "publication_normalized_sha256": "29b4df541f84607075eaadd108935044ea5e2714b706bac985f52e6efb1dadd8"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/GalleryApplication.java",
+      "sha256": "f9608335c23336c9b0c6327930356b0d7bc89db3d463c90281ba703d832c770e",
+      "bytes": 1153,
+      "publication_normalized_sha256": "cce9f4b53890eb77d9cde43087d7fbe17a89f43104374484c14b430c6a835498"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/GalleryBackup.java",
+      "sha256": "62d188a390b9858fd2082eaa00230713bf0489993fa323cf10ce43f81f008c0f",
+      "bytes": 33041,
+      "publication_normalized_sha256": "ea39cb5a7cb5b0f5956a6ca45580a7d58a4c8a4941036e1e8d89082d4ff67275"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/GalleryGridView.java",
+      "sha256": "d33fcd85c204ccdd7ed59c59f867eed7b05318a142828f5c5addc3c3ecc06fb8",
+      "bytes": 4357,
+      "publication_normalized_sha256": "81a5780be23c1cee52b6cda6962dba07e442bc0b854f3ad39c29a8035d507f49"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/GalleryUi.java",
+      "sha256": "2c05b79bb200fe1faf989cb048722b96ededd786b95419e830c209fcd2b2608b",
+      "bytes": 6331,
+      "publication_normalized_sha256": "981677557e9ae489d66e5d976e31fb9d3a0c0270b49f299ef3ad167f28b3400d"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/Item.java",
+      "sha256": "336509b33f5975c0348452e7a2791f5484841edaf8f35352b83b6fee84c3d6b5",
+      "bytes": 1962,
+      "publication_normalized_sha256": "336509b33f5975c0348452e7a2791f5484841edaf8f35352b83b6fee84c3d6b5"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/Library.java",
+      "sha256": "faeb41d652667a1c41c0eda475fd19fb435a92980921f13a77cf854574cf4e04",
+      "bytes": 40438,
+      "publication_normalized_sha256": "1728fe9f77b2a5058c479e533cdc72460327698df37d14b819ba31e46577f15c"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/LocalFiles.java",
+      "sha256": "a685661a19225ce3ad091554c9b57672d3c47a0cda54c19385f020d14da8f121",
+      "bytes": 11400,
+      "publication_normalized_sha256": "a685661a19225ce3ad091554c9b57672d3c47a0cda54c19385f020d14da8f121"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/LocalImportActivity.java",
+      "sha256": "1d5092397306aae28177c830c9207104f1c9eca716ec5cb8888448d03512cebe",
+      "bytes": 10340,
+      "publication_normalized_sha256": "1d5092397306aae28177c830c9207104f1c9eca716ec5cb8888448d03512cebe"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/MainActivity.java",
+      "sha256": "537225fa2eb4c0cb3e53544da144c41f37143961774684e5b0b19fe519bc1c9a",
+      "bytes": 66596,
+      "publication_normalized_sha256": "537225fa2eb4c0cb3e53544da144c41f37143961774684e5b0b19fe519bc1c9a"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/MediaCache.java",
+      "sha256": "453b88b3c67abc42a96c3424f7d8d39ad04317d3e803b5091707a40172666332",
+      "bytes": 19709,
+      "publication_normalized_sha256": "453b88b3c67abc42a96c3424f7d8d39ad04317d3e803b5091707a40172666332"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/MediaFilter.java",
+      "sha256": "e6697c4b7643e06068323b4ffb0ae9615a90a06eead7a9a41f483c20699d2f69",
+      "bytes": 5018,
+      "publication_normalized_sha256": "e6697c4b7643e06068323b4ffb0ae9615a90a06eead7a9a41f483c20699d2f69"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/MediaFilterDialog.java",
+      "sha256": "47410ee1404a703f3c89ccab2b0bef939b15a243673eafc7a112bfbdbde8ae79",
+      "bytes": 10977,
+      "publication_normalized_sha256": "49c09f80e12a314f2f4e6cc6e3bf66e642f9acf371ec16b1540a58bbca2e1e99"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/PagedAdapter.java",
+      "sha256": "b59c2a1bcc97215b541793217d3e2076cfbc2297518131c48895e94679ef7529",
+      "bytes": 11323,
+      "publication_normalized_sha256": "b59c2a1bcc97215b541793217d3e2076cfbc2297518131c48895e94679ef7529"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/PersonalBackup.java",
+      "sha256": "3b332b43c18aeab15dac742f749cacf7797c1b8a24cc2281fb5f465fc6bbecda",
+      "bytes": 11268,
+      "publication_normalized_sha256": "3b332b43c18aeab15dac742f749cacf7797c1b8a24cc2281fb5f465fc6bbecda"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/PersonalLibrary.java",
+      "sha256": "fc0e55721409e32d7c7eb5394c159e23b06d9b76a91eb2eb4b7036c02d3a5096",
+      "bytes": 20534,
+      "publication_normalized_sha256": "fc0e55721409e32d7c7eb5394c159e23b06d9b76a91eb2eb4b7036c02d3a5096"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/PersonalUi.java",
+      "sha256": "2d04a55fa3c1a501b4f769c7292ae84608b04fbbbf71696534879dd4f61fe1e1",
+      "bytes": 15173,
+      "publication_normalized_sha256": "2d04a55fa3c1a501b4f769c7292ae84608b04fbbbf71696534879dd4f61fe1e1"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/PinAttempts.java",
+      "sha256": "fe1049d47b850c93ccae01f86668987bcb41f7cfa41d09529b8ee1975ff9f73e",
+      "bytes": 1008,
+      "publication_normalized_sha256": "fe113654d96b93f0e41ac763d1e8e393708ff9686aa6cd4fc8542bdb7aedbe23"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/PinHash.java",
+      "sha256": "03255ccdffdcb34420f66c1ab8a9c751ab6f8a953bf50e38a0a42135375b15e6",
+      "bytes": 884,
+      "publication_normalized_sha256": "03255ccdffdcb34420f66c1ab8a9c751ab6f8a953bf50e38a0a42135375b15e6"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/PinThrottle.java",
+      "sha256": "8387246b2c0417dcf37c70c97994ce9e8dc2db32ca1305f38934f87b5dc26461",
+      "bytes": 1135,
+      "publication_normalized_sha256": "7043ad3f107d5d5073c73029e72196b04ba1e70017b9d47db3119d29bceb5151"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/PlaybackProgress.java",
+      "sha256": "ba474e970d15edba91e3e69bf0535463289483cafda2d6dc541d8ea73a202aab",
+      "bytes": 438,
+      "publication_normalized_sha256": "ba474e970d15edba91e3e69bf0535463289483cafda2d6dc541d8ea73a202aab"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/PlaybackWatch.java",
+      "sha256": "d54d79bbcfa01309aa49e12ebe7b5a3af36262bc995fc519a3341aed0663b16e",
+      "bytes": 895,
+      "publication_normalized_sha256": "d54d79bbcfa01309aa49e12ebe7b5a3af36262bc995fc519a3341aed0663b16e"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/PlayerControls.java",
+      "sha256": "92298f049957e39a36f3f9aff0de9b44b47c43e6cefdcbbbac1308b3dad79bca",
+      "bytes": 302,
+      "publication_normalized_sha256": "92298f049957e39a36f3f9aff0de9b44b47c43e6cefdcbbbac1308b3dad79bca"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/PresentationBackup.java",
+      "sha256": "536cc9b288ce7e51f78a25ca7bc6a73cb64e95840fa9f3f612f8a5254ec8013f",
+      "bytes": 9481,
+      "publication_normalized_sha256": "536cc9b288ce7e51f78a25ca7bc6a73cb64e95840fa9f3f612f8a5254ec8013f"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/PreviewRequests.java",
+      "sha256": "d17363de0db22a3d2f157eda8827ee5c7a349a6eaae4ca66069b59d927943c11",
+      "bytes": 2804,
+      "publication_normalized_sha256": "d17363de0db22a3d2f157eda8827ee5c7a349a6eaae4ca66069b59d927943c11"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/PrivatePreferences.java",
+      "sha256": "e67022f9769feb57b87cb895d7335817ce2a081c8585bffaf714ac034f13cd79",
+      "bytes": 4026,
+      "publication_normalized_sha256": "c6ffde3a57fd5d0763b9afe0639ddd08ff37e5acc5e0d6e4887a3cf2ffcdaaf7"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/Profiles.java",
+      "sha256": "aecbc3ab08cec2e95661c2008a8952f7cd3acc6df758106133c7ae0922e4f0e6",
+      "bytes": 377,
+      "publication_normalized_sha256": "aecbc3ab08cec2e95661c2008a8952f7cd3acc6df758106133c7ae0922e4f0e6"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/RecoveryActivity.java",
+      "sha256": "5e19674a408cfc6bfa77d024832f5ceccb2690b357175fa74f28eb3464554272",
+      "bytes": 14453,
+      "publication_normalized_sha256": "edcdedc3e24af5fdf5d2393886612f51e4fd2ad913b7f834f0f929a83f34a4cb"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/SavedCollection.java",
+      "sha256": "f72daa0bad3bb1abb20982e0ed460ca89db7c1ab37410d6fa11d8d87dfe9e013",
+      "bytes": 3302,
+      "publication_normalized_sha256": "f72daa0bad3bb1abb20982e0ed460ca89db7c1ab37410d6fa11d8d87dfe9e013"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/SavedCollectionsUi.java",
+      "sha256": "4442d0a596f99b64bd0629b1f558d3d1df9231d6a6be20e068523ecf915e4990",
+      "bytes": 3902,
+      "publication_normalized_sha256": "5f99482ab4b9b2d0e6cd4c1eeecae6eb54e22e0c450b1bd57d1e930ebea0b04b"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/SecureActivity.java",
+      "sha256": "3ce4e45f1d66c85517b8166c615e9c155a1685773273a6dfe38b6e4a9efdc623",
+      "bytes": 10814,
+      "publication_normalized_sha256": "ba2ee93ca8a5b796a1dff598686a9f269507394cb29b386f2cf51fe72a8ebd47"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/SecureDialogs.java",
+      "sha256": "62b213631e3675634bf9c1eaafdfaece826fc7ee122e4eb0df5b904a7fcc77eb",
+      "bytes": 1152,
+      "publication_normalized_sha256": "62b213631e3675634bf9c1eaafdfaece826fc7ee122e4eb0df5b904a7fcc77eb"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/Source.java",
+      "sha256": "0e9964e0a50dfa57f8e180d3f5aeb84b78b4bf467114f098c3005dd2ceb0aae6",
+      "bytes": 9580,
+      "publication_normalized_sha256": "0e9964e0a50dfa57f8e180d3f5aeb84b78b4bf467114f098c3005dd2ceb0aae6"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/SourceAccount.java",
+      "sha256": "230932430f002dd9045bdd9d3c070a658ab1f88144669ddd4e8faff749cf7d0d",
+      "bytes": 757,
+      "publication_normalized_sha256": "230932430f002dd9045bdd9d3c070a658ab1f88144669ddd4e8faff749cf7d0d"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/SourceId.java",
+      "sha256": "14e28182e72af10824f7ef3cf468c32268dcfb529dcbcd0d69de73f1427edfdf",
+      "bytes": 824,
+      "publication_normalized_sha256": "71a98072b5878be3875837a6b42303cf8d6cb9f2d1f026e75055d83b0ab8c201"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/SponsoredBanner.java",
+      "sha256": "baf80f1ade9f40be54d43aae3d6807d4fed594d6ccce0e489c4093c36162ddd6",
+      "bytes": 4203,
+      "publication_normalized_sha256": "baf80f1ade9f40be54d43aae3d6807d4fed594d6ccce0e489c4093c36162ddd6"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/SponsoredLink.java",
+      "sha256": "7e51ece6a41db9e63ec0269187bf8ba6757b23743f40068a632617709d632e0f",
+      "bytes": 1357,
+      "publication_normalized_sha256": "7e51ece6a41db9e63ec0269187bf8ba6757b23743f40068a632617709d632e0f"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/StackActivity.java",
+      "sha256": "ae1592f22615b70fa4972d100f02c4f5f81de98348440a61c70945d6b97da09d",
+      "bytes": 7142,
+      "publication_normalized_sha256": "ae1592f22615b70fa4972d100f02c4f5f81de98348440a61c70945d6b97da09d"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/State.java",
+      "sha256": "5ececf6c8bee6c8b183932c54979efa6fd0322e5ca8527a254346ab8a08142c0",
+      "bytes": 2939,
+      "publication_normalized_sha256": "affcb5b2e0bfcf4720aa971608cceb917e2e9bfa246bcfbf6c2135759db4b095"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/StorageActivity.java",
+      "sha256": "ba4a82f9d0a7cb1e224eb9dbd68e03e97e5a95f8a305853d4365003f4384a51f",
+      "bytes": 7679,
+      "publication_normalized_sha256": "cc7fcd4dd39d2eb4df0c4cb5db864c846939bfe018c4b3e95c9c09274602403f"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/StorageIndex.java",
+      "sha256": "53c5aeb502c14040e3f6840ff9c074d7ead5e3e91c771366b569ada057bf5037",
+      "bytes": 6786,
+      "publication_normalized_sha256": "b9970256327fcb0ddac94d775f0fc481ffe7f2ade5459ec211d51e0454f16ffe"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/SyncService.java",
+      "sha256": "5b4f9a4b9368b5e0b9bce207fd53d083bb9cd4ca63d49b85a290f124138cb374",
+      "bytes": 9493,
+      "publication_normalized_sha256": "a3c5cc27993ec26703af9eb7b3c573178fdb3c8f187a2c00f346cd168186d122"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/TelegramSource.java",
+      "sha256": "251797369d3d80dde8b37968db40140a585127c0bec76b8e6b125786ac7af370",
+      "bytes": 5469,
+      "publication_normalized_sha256": "251797369d3d80dde8b37968db40140a585127c0bec76b8e6b125786ac7af370"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/UiSource.java",
+      "sha256": "e4a0fc201bca3a7e3aa34ca2cf4971935d4365ec530a4f238d59b83ab1cff15f",
+      "bytes": 3740,
+      "publication_normalized_sha256": "364eb52831186b7f02d9b36be9bab118d23b4d4c4478c9902683075727cd16e6"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/UndoBar.java",
+      "sha256": "3dfee7b70944424b2266a2441701dd6c997abdd9354b4c9adb0c9c89949d19e1",
+      "bytes": 3169,
+      "publication_normalized_sha256": "7fbd204765924d46939d9ded4a958d2c0a19ee08f117d35aed95955fbc28a641"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/UnlockGate.java",
+      "sha256": "4d24e40d5a8cf8ac1952fcb056166ef7d2a1954ad6b0a85da59f293314ac6af6",
+      "bytes": 272,
+      "publication_normalized_sha256": "4d24e40d5a8cf8ac1952fcb056166ef7d2a1954ad6b0a85da59f293314ac6af6"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/Vault.java",
+      "sha256": "a0ead429c26a40e772eb733fcd1be15cf61c7cd9dea4b4d012e7801518a7402c",
+      "bytes": 9761,
+      "publication_normalized_sha256": "c85c55c9d0e1285a083b29942bb19e253684ec692750ea51e3b773b85ef3415a"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/VideoGesture.java",
+      "sha256": "e33e99157d2e910760a83c67a06dd6487b8ed484cd558bbc4deb74f7a53e7c69",
+      "bytes": 369,
+      "publication_normalized_sha256": "8dad83d4a9fcf1ba9d3212417fcd9c72b58a289c67172129e56e93607c28b3ad"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/VideoPlayer.java",
+      "sha256": "8b4322d698bd001268715289f0f993a286d1f6b32ca196c7c01833a8ed7a046e",
+      "bytes": 9705,
+      "publication_normalized_sha256": "8b4322d698bd001268715289f0f993a286d1f6b32ca196c7c01833a8ed7a046e"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/ViewerActivity.java",
+      "sha256": "9c51c13f2b9e07d06591ed226f4329fcc797b99ce3b695f389e6bf0619eb281e",
+      "bytes": 61635,
+      "publication_normalized_sha256": "9c51c13f2b9e07d06591ed226f4329fcc797b99ce3b695f389e6bf0619eb281e"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/ViewerGesture.java",
+      "sha256": "51679033fe5d6873dd02b1c04a40fb39a3fbdeb9a209e3679d27af056ed77dd1",
+      "bytes": 376,
+      "publication_normalized_sha256": "51679033fe5d6873dd02b1c04a40fb39a3fbdeb9a209e3679d27af056ed77dd1"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/VisualActivity.java",
+      "sha256": "f5f5d74debaceb20b79c137fb6cb9a1c05ac94983ee3aca43fcb40bd10d05ea8",
+      "bytes": 26080,
+      "publication_normalized_sha256": "f5f5d74debaceb20b79c137fb6cb9a1c05ac94983ee3aca43fcb40bd10d05ea8"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/VisualEmbedding.java",
+      "sha256": "9a07ea4552f57d164c4e3a207e4f203601c79c08c77817e28f0bad523e004e02",
+      "bytes": 6393,
+      "publication_normalized_sha256": "9a07ea4552f57d164c4e3a207e4f203601c79c08c77817e28f0bad523e004e02"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/VisualIndex.java",
+      "sha256": "d5f2148ec885e021d332fc4bf3cfd654d2298e03fbceaa614ded1a13d09e1e82",
+      "bytes": 32052,
+      "publication_normalized_sha256": "d5f2148ec885e021d332fc4bf3cfd654d2298e03fbceaa614ded1a13d09e1e82"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/VisualMath.java",
+      "sha256": "5f245a9fed609514ea2b579df309059f86287558d3b58fb6e6f21c22d48fe50d",
+      "bytes": 1842,
+      "publication_normalized_sha256": "5f245a9fed609514ea2b579df309059f86287558d3b58fb6e6f21c22d48fe50d"
+    },
+    {
+      "path": "app/src/main/java/local/ttlab/gallery/VisualTokenizer.java",
+      "sha256": "5badc5ce4f5162a7320a3479e9fd867f0ab344b421bc25e14bb353b0631068ba",
+      "bytes": 4655,
+      "publication_normalized_sha256": "5badc5ce4f5162a7320a3479e9fd867f0ab344b421bc25e14bb353b0631068ba"
+    },
+    {
+      "path": "app/src/main/res/drawable/gallery_control.xml",
+      "sha256": "64ddb1230d7e10eabf16657efdb562029bf1f2de7d72afeb5f4c3cc8ee02a787",
+      "bytes": 492,
+      "publication_normalized_sha256": "64ddb1230d7e10eabf16657efdb562029bf1f2de7d72afeb5f4c3cc8ee02a787"
+    },
+    {
+      "path": "app/src/main/res/drawable/ic_gallery_back.xml",
+      "sha256": "66c85fbc362c1ab87e3156e9dea6fd5b51d5b10d655d630262b53386c0bca1cb",
+      "bytes": 388,
+      "publication_normalized_sha256": "66c85fbc362c1ab87e3156e9dea6fd5b51d5b10d655d630262b53386c0bca1cb"
+    },
+    {
+      "path": "app/src/main/res/drawable/ic_gallery_channels.xml",
+      "sha256": "eb7723de6d1f571d7efb26e668fe0e18d0cb9af9495a2194f7e3bace251f947b",
+      "bytes": 399,
+      "publication_normalized_sha256": "eb7723de6d1f571d7efb26e668fe0e18d0cb9af9495a2194f7e3bace251f947b"
+    },
+    {
+      "path": "app/src/main/res/drawable/ic_gallery_check.xml",
+      "sha256": "44cb4566f01e388f9f2c5a94258bd2f7679f469e4fc52e8480dbb42e4bb49fdd",
+      "bytes": 381,
+      "publication_normalized_sha256": "44cb4566f01e388f9f2c5a94258bd2f7679f469e4fc52e8480dbb42e4bb49fdd"
+    },
+    {
+      "path": "app/src/main/res/drawable/ic_gallery_chevron_down.xml",
+      "sha256": "30fd6241a6dcd32032eaf1321dba03a6497b052262fb61d842d1bb22a8ebb76f",
+      "bytes": 379,
+      "publication_normalized_sha256": "30fd6241a6dcd32032eaf1321dba03a6497b052262fb61d842d1bb22a8ebb76f"
+    },
+    {
+      "path": "app/src/main/res/drawable/ic_gallery_close.xml",
+      "sha256": "ebb183993b35b981242f51adce276ef2764ca9bf83e8ca5543863cddc523ec9e",
+      "bytes": 386,
+      "publication_normalized_sha256": "ebb183993b35b981242f51adce276ef2764ca9bf83e8ca5543863cddc523ec9e"
+    },
+    {
+      "path": "app/src/main/res/drawable/ic_gallery_download.xml",
+      "sha256": "baa0f105331010b907b213aebc77415a2dad9a56835ad9e49883e1cb896444d9",
+      "bytes": 402,
+      "publication_normalized_sha256": "baa0f105331010b907b213aebc77415a2dad9a56835ad9e49883e1cb896444d9"
+    },
+    {
+      "path": "app/src/main/res/drawable/ic_gallery_filter.xml",
+      "sha256": "b94c4475936cba5ba74da98b693509fb8dc5d8879520deb7169d8c5d19ae48f0",
+      "bytes": 390,
+      "publication_normalized_sha256": "b94c4475936cba5ba74da98b693509fb8dc5d8879520deb7169d8c5d19ae48f0"
+    },
+    {
+      "path": "app/src/main/res/drawable/ic_gallery_grid.xml",
+      "sha256": "93b6c566678ee1b8c7262d3f188e8d13a2030cecd0ee9f56cb5f0c33428bc3fd",
+      "bytes": 418,
+      "publication_normalized_sha256": "93b6c566678ee1b8c7262d3f188e8d13a2030cecd0ee9f56cb5f0c33428bc3fd"
+    },
+    {
+      "path": "app/src/main/res/drawable/ic_gallery_image.xml",
+      "sha256": "356cd8a43b2d7e0524d42147dbc98c8a626bea48e752e4fbfecba35ab2f2f843",
+      "bytes": 412,
+      "publication_normalized_sha256": "356cd8a43b2d7e0524d42147dbc98c8a626bea48e752e4fbfecba35ab2f2f843"
+    },
+    {
+      "path": "app/src/main/res/drawable/ic_gallery_library.xml",
+      "sha256": "f5587c0733d3496d35620f650ba118a6b8b1efd29a27682a6fc98d104074e075",
+      "bytes": 412,
+      "publication_normalized_sha256": "f5587c0733d3496d35620f650ba118a6b8b1efd29a27682a6fc98d104074e075"
+    },
+    {
+      "path": "app/src/main/res/drawable/ic_gallery_more.xml",
+      "sha256": "4f4a567266c794ec4fd17188409ff669d87a3a1baa061a1de04f09c48f2e5d91",
+      "bytes": 399,
+      "publication_normalized_sha256": "4f4a567266c794ec4fd17188409ff669d87a3a1baa061a1de04f09c48f2e5d91"
+    },
+    {
+      "path": "app/src/main/res/drawable/ic_gallery_search.xml",
+      "sha256": "0d4c4155b5231bec721bb28fd0ac2fea28fcd3bf678e6968006baa889ed25e86",
+      "bytes": 426,
+      "publication_normalized_sha256": "0d4c4155b5231bec721bb28fd0ac2fea28fcd3bf678e6968006baa889ed25e86"
+    },
+    {
+      "path": "app/src/main/res/drawable/ic_gallery_settings.xml",
+      "sha256": "7b999fc0d9c7e4cab59b156227a8a93af2ba1c4dbd98b6df2ed76682180b5f54",
+      "bytes": 423,
+      "publication_normalized_sha256": "7b999fc0d9c7e4cab59b156227a8a93af2ba1c4dbd98b6df2ed76682180b5f54"
+    },
+    {
+      "path": "app/src/main/res/drawable/ic_gallery_star.xml",
+      "sha256": "b86c87238b2e26ee17060369b91bfe05c49ee89958633ebbf25ebc46be0d3677",
+      "bytes": 447,
+      "publication_normalized_sha256": "d19ea1616ca4b26090de4dd7714abbc3fe81c668ba39cb07e4f284c3746d4a5e"
+    },
+    {
+      "path": "app/src/main/res/drawable/ic_gallery_sync.xml",
+      "sha256": "757d32b392a09caaf2d8f4ed4d9f25d2443a3908e228c3f0ab2d75e1d1091cbf",
+      "bytes": 440,
+      "publication_normalized_sha256": "757d32b392a09caaf2d8f4ed4d9f25d2443a3908e228c3f0ab2d75e1d1091cbf"
+    },
+    {
+      "path": "app/src/main/res/drawable/ic_gallery_visual.xml",
+      "sha256": "915b83ae32f0ce0afe6474c16d927e1e6d654e9dcdc948af47a9640bdcab0ac6",
+      "bytes": 422,
+      "publication_normalized_sha256": "915b83ae32f0ce0afe6474c16d927e1e6d654e9dcdc948af47a9640bdcab0ac6"
+    },
+    {
+      "path": "app/src/main/res/drawable/ic_viewer_back.xml",
+      "sha256": "abdbf8ebcc91b7d6a019b9c3c568b95b4a556df0593503713558cb52976f5892",
+      "bytes": 409,
+      "publication_normalized_sha256": "abdbf8ebcc91b7d6a019b9c3c568b95b4a556df0593503713558cb52976f5892"
+    },
+    {
+      "path": "app/src/main/res/drawable/ic_viewer_forward.xml",
+      "sha256": "859ecacb2bd9031539b0e31bb74a02c141a4ffc45d866611c9474863a99969d7",
+      "bytes": 391,
+      "publication_normalized_sha256": "859ecacb2bd9031539b0e31bb74a02c141a4ffc45d866611c9474863a99969d7"
+    },
+    {
+      "path": "app/src/main/res/drawable/ic_viewer_pause.xml",
+      "sha256": "4b0705b50e5bd40380dbb5a5f85205becb97a0a532ca0bb5b96c7d8d4eb214b2",
+      "bytes": 266,
+      "publication_normalized_sha256": "4b0705b50e5bd40380dbb5a5f85205becb97a0a532ca0bb5b96c7d8d4eb214b2"
+    },
+    {
+      "path": "app/src/main/res/drawable/ic_viewer_play.xml",
+      "sha256": "be894cd57dbabbd01e2b48587fe0b7076fe37853baa304d66b0fe439787f59dc",
+      "bytes": 254,
+      "publication_normalized_sha256": "be894cd57dbabbd01e2b48587fe0b7076fe37853baa304d66b0fe439787f59dc"
+    },
+    {
+      "path": "app/src/main/res/drawable/ic_viewer_rewind.xml",
+      "sha256": "8258a273f590d5261a1691a25bb9fe7b47294d88112ba88dda6f2deb0482309b",
+      "bytes": 386,
+      "publication_normalized_sha256": "8258a273f590d5261a1691a25bb9fe7b47294d88112ba88dda6f2deb0482309b"
+    },
+    {
+      "path": "app/src/main/res/drawable/ic_viewer_save.xml",
+      "sha256": "8b1ba3bf51199b55c848f2388fc5d8be1e0a4f812f5529ae7c1a8e13136cc718",
+      "bytes": 396,
+      "publication_normalized_sha256": "8b1ba3bf51199b55c848f2388fc5d8be1e0a4f812f5529ae7c1a8e13136cc718"
+    },
+    {
+      "path": "app/src/main/res/drawable/ic_viewer_zoom.xml",
+      "sha256": "9a9039da7db4a1729ac6318af77fdb2ab09e3533682506464c01c5c7282f2509",
+      "bytes": 388,
+      "publication_normalized_sha256": "9a9039da7db4a1729ac6318af77fdb2ab09e3533682506464c01c5c7282f2509"
+    },
+    {
+      "path": "app/src/main/res/values/colors.xml",
+      "sha256": "b2024346b5a6b498cf7650e0bc047a1fe3e8e27ab2f09f46f574b7f8e8bb473e",
+      "bytes": 600,
+      "publication_normalized_sha256": "91d09c2b002ababa1809a19120d4268d13b66709f825321e609d7d98f857519c"
+    },
+    {
+      "path": "app/src/main/res/values/styles.xml",
+      "sha256": "09c2b09f13bec8cd880974b0972a29129a2bab04f59dcfd052b0bd810aa07c60",
+      "bytes": 1562,
+      "publication_normalized_sha256": "18734dd884907aed71c689dc81c3ba929877b6169823fc8e3365f590358dc890"
+    },
+    {
+      "path": "app/src/main/res/values-night/colors.xml",
+      "sha256": "b2024346b5a6b498cf7650e0bc047a1fe3e8e27ab2f09f46f574b7f8e8bb473e",
+      "bytes": 600,
+      "publication_normalized_sha256": "91d09c2b002ababa1809a19120d4268d13b66709f825321e609d7d98f857519c"
+    },
+    {
+      "path": "app/src/main/res/values-night/styles.xml",
+      "sha256": "09c2b09f13bec8cd880974b0972a29129a2bab04f59dcfd052b0bd810aa07c60",
+      "bytes": 1562,
+      "publication_normalized_sha256": "18734dd884907aed71c689dc81c3ba929877b6169823fc8e3365f590358dc890"
+    },
+    {
+      "path": "app/src/test/java/local/ttlab/gallery/BackupArchiveTest.java",
+      "sha256": "1d5503e817a35244359123ea31883d43f332954e1a9b3aedaee2d15c9005e1b2",
+      "bytes": 13823,
+      "publication_normalized_sha256": "1d5503e817a35244359123ea31883d43f332954e1a9b3aedaee2d15c9005e1b2"
+    },
+    {
+      "path": "app/src/test/java/local/ttlab/gallery/BackupMediaSizeTest.java",
+      "sha256": "275035c38c35b87439d1448ca218deebb921303c3844ba3fe1681854d9580257",
+      "bytes": 876,
+      "publication_normalized_sha256": "275035c38c35b87439d1448ca218deebb921303c3844ba3fe1681854d9580257"
+    },
+    {
+      "path": "app/src/test/java/local/ttlab/gallery/BiometricMarkerTest.java",
+      "sha256": "15c7c367de055b4ccf8f6794b388e5c621953fb67a9bc3e6574f0f563c8f7b79",
+      "bytes": 1805,
+      "publication_normalized_sha256": "15c7c367de055b4ccf8f6794b388e5c621953fb67a9bc3e6574f0f563c8f7b79"
+    },
+    {
+      "path": "app/src/test/java/local/ttlab/gallery/ChunkCipherTest.java",
+      "sha256": "a938e7436dbcf85598192b36b85907780721531a587bbc5de721ef536b28def8",
+      "bytes": 1224,
+      "publication_normalized_sha256": "a938e7436dbcf85598192b36b85907780721531a587bbc5de721ef536b28def8"
+    },
+    {
+      "path": "app/src/test/java/local/ttlab/gallery/ConnectionMessageTest.java",
+      "sha256": "5970b9fc83871dc1ed5a22d09fbf9471270b05f5e13e8150272a3c05a09fc318",
+      "bytes": 3156,
+      "publication_normalized_sha256": "5970b9fc83871dc1ed5a22d09fbf9471270b05f5e13e8150272a3c05a09fc318"
+    },
+    {
+      "path": "app/src/test/java/local/ttlab/gallery/ConnectionRetryTest.java",
+      "sha256": "beefeaed33f7c78f0f2891946ca5f091875c3a0980b0760c61ce360ee04b33cf",
+      "bytes": 2702,
+      "publication_normalized_sha256": "beefeaed33f7c78f0f2891946ca5f091875c3a0980b0760c61ce360ee04b33cf"
+    },
+    {
+      "path": "app/src/test/java/local/ttlab/gallery/DateSectionsTest.java",
+      "sha256": "c8bc7917be36322bb26fece90d8f14cbba39da4910ed1b18a6e8954fe10a3905",
+      "bytes": 1251,
+      "publication_normalized_sha256": "c23c28dfe3532185fa55a9076f760e2c86997c4f003af746944c227ada0ebf7e"
+    },
+    {
+      "path": "app/src/test/java/local/ttlab/gallery/DownloadProgressTest.java",
+      "sha256": "6018418456581cde891dd8ec0742a65abb94eb259d62a460905f3bba2196f037",
+      "bytes": 1506,
+      "publication_normalized_sha256": "6018418456581cde891dd8ec0742a65abb94eb259d62a460905f3bba2196f037"
+    },
+    {
+      "path": "app/src/test/java/local/ttlab/gallery/ItemRevisionTest.java",
+      "sha256": "bc3b2728551998eee0dac5a71db69ee887fa18589b4c3a27ad588ab9f0cc801a",
+      "bytes": 754,
+      "publication_normalized_sha256": "bc3b2728551998eee0dac5a71db69ee887fa18589b4c3a27ad588ab9f0cc801a"
+    },
+    {
+      "path": "app/src/test/java/local/ttlab/gallery/MediaFilterTest.java",
+      "sha256": "5fc38bbee7258421b0be61a1505e182133a0f7159b6db21dbd69650673772f00",
+      "bytes": 1815,
+      "publication_normalized_sha256": "8e177d4d2de8c57f8073aa03780c34589dffe893c989e6db5922e0bfb3a94662"
+    },
+    {
+      "path": "app/src/test/java/local/ttlab/gallery/PeerKeyTest.java",
+      "sha256": "34fb66075296e1592b8d525ef7a276e472bebd82032423d5a953cc52e3fb3017",
+      "bytes": 1221,
+      "publication_normalized_sha256": "29248d0ebf74108b01f1d7bc22006e80b9e05d0b9d079b0fec72019bc4bb7b1f"
+    },
+    {
+      "path": "app/src/test/java/local/ttlab/gallery/PersonalFilterV211Test.java",
+      "sha256": "bd85bb933270f185af14940aa846c6ced7153abcc000a0d7a252550b15ffc3d2",
+      "bytes": 1386,
+      "publication_normalized_sha256": "bd85bb933270f185af14940aa846c6ced7153abcc000a0d7a252550b15ffc3d2"
+    },
+    {
+      "path": "app/src/test/java/local/ttlab/gallery/PinHashTest.java",
+      "sha256": "13f3d9c633405b8d21521905e621102c293593799253902f6d02228517ec0216",
+      "bytes": 468,
+      "publication_normalized_sha256": "13f3d9c633405b8d21521905e621102c293593799253902f6d02228517ec0216"
+    },
+    {
+      "path": "app/src/test/java/local/ttlab/gallery/PinThrottleTest.java",
+      "sha256": "7a81a45020343602dc6b4cb9eabfcbca4dabff6c9a8d855b729040b8aacf95a8",
+      "bytes": 1153,
+      "publication_normalized_sha256": "7a81a45020343602dc6b4cb9eabfcbca4dabff6c9a8d855b729040b8aacf95a8"
+    },
+    {
+      "path": "app/src/test/java/local/ttlab/gallery/PlaybackProgressTest.java",
+      "sha256": "1f5d722b453ec123600490008a33667b44c62e67308dc416f4387baf338c87c7",
+      "bytes": 1302,
+      "publication_normalized_sha256": "1f5d722b453ec123600490008a33667b44c62e67308dc416f4387baf338c87c7"
+    },
+    {
+      "path": "app/src/test/java/local/ttlab/gallery/PlaybackWatchTest.java",
+      "sha256": "f6a51829ff38c5e4d6b485fa342f877c81b433e7944ff6fff3cdce15d08cdd3e",
+      "bytes": 1642,
+      "publication_normalized_sha256": "f6a51829ff38c5e4d6b485fa342f877c81b433e7944ff6fff3cdce15d08cdd3e"
+    },
+    {
+      "path": "app/src/test/java/local/ttlab/gallery/PlayerControlsTest.java",
+      "sha256": "80f32dc228ef4d775cbe735d2219884578f1be305cbd14a3e41882ac62043cb8",
+      "bytes": 948,
+      "publication_normalized_sha256": "80f32dc228ef4d775cbe735d2219884578f1be305cbd14a3e41882ac62043cb8"
+    },
+    {
+      "path": "app/src/test/java/local/ttlab/gallery/SourceAccountTest.java",
+      "sha256": "e831572a3bfa13749f7a1d89e1bab7045fcd4ed4eebafa4bcff12560bc506eca",
+      "bytes": 1007,
+      "publication_normalized_sha256": "e831572a3bfa13749f7a1d89e1bab7045fcd4ed4eebafa4bcff12560bc506eca"
+    },
+    {
+      "path": "app/src/test/java/local/ttlab/gallery/SourceIdTest.java",
+      "sha256": "a0b3f8a22843683efa7e61c469308dd1e66575cfb58ba54df0a6c6424545be9a",
+      "bytes": 849,
+      "publication_normalized_sha256": "9c0ea7c25d735c58220d46d917ef08601b20e3c4efb72fe459a994a2759b38f6"
+    },
+    {
+      "path": "app/src/test/java/local/ttlab/gallery/SponsoredLinkTest.java",
+      "sha256": "da18f1fbfbce2994bc30add3ca6014ca6c5d2960407b41f50bedfcc75647f511",
+      "bytes": 975,
+      "publication_normalized_sha256": "da18f1fbfbce2994bc30add3ca6014ca6c5d2960407b41f50bedfcc75647f511"
+    },
+    {
+      "path": "app/src/test/java/local/ttlab/gallery/UnlockGateTest.java",
+      "sha256": "4a1037dcf3ee84244ce01c7f1987dccd06a7b65f06b47f788e4fd67db3b15796",
+      "bytes": 761,
+      "publication_normalized_sha256": "4a1037dcf3ee84244ce01c7f1987dccd06a7b65f06b47f788e4fd67db3b15796"
+    },
+    {
+      "path": "app/src/test/java/local/ttlab/gallery/VideoGestureTest.java",
+      "sha256": "8ef6d3941ccf050eac7a23983feb1267ef06b648a8bda160f6e4ce8d6bb59574",
+      "bytes": 582,
+      "publication_normalized_sha256": "b9f5462df3f40428400627c278d8c196192fd23265d0a0419369fdc5092b5125"
+    },
+    {
+      "path": "app/src/test/java/local/ttlab/gallery/ViewerGestureTest.java",
+      "sha256": "1ba1b78023a49c5dbad8d51f88da85aa771eb306f7c12f8be4c8d37688ffe8ca",
+      "bytes": 990,
+      "publication_normalized_sha256": "1ba1b78023a49c5dbad8d51f88da85aa771eb306f7c12f8be4c8d37688ffe8ca"
+    },
+    {
+      "path": "app/src/test/java/local/ttlab/gallery/VisualMathTest.java",
+      "sha256": "62dfd837912cb7e580ae41c43c26eeca45fbdd81b12001930411cd4e0f186195",
+      "bytes": 2263,
+      "publication_normalized_sha256": "62dfd837912cb7e580ae41c43c26eeca45fbdd81b12001930411cd4e0f186195"
+    },
+    {
+      "path": "app/src/test/java/local/ttlab/gallery/VisualTokenizerTest.java",
+      "sha256": "3010546a708e8dbffb3293aae0bb05dd3dbc30f57c187d2d03b827c8072377f3",
+      "bytes": 4727,
+      "publication_normalized_sha256": "3010546a708e8dbffb3293aae0bb05dd3dbc30f57c187d2d03b827c8072377f3"
+    },
+    {
+      "path": "telegram/src/main/AndroidManifest.xml",
+      "sha256": "057ecf59a7a09f5855d04650d74cc213e6d8594cb3179a25b090448ad1808a01",
+      "bytes": 1562,
+      "publication_normalized_sha256": "057ecf59a7a09f5855d04650d74cc213e6d8594cb3179a25b090448ad1808a01"
+    },
+    {
+      "path": "telegram/src/main/java/local/ttlab/telegram/AuthorizeActivity.java",
+      "sha256": "f7bba2eaae394634ee7157cf739ac9792f29b27cbc183e101f8f8ddec47871fb",
+      "bytes": 2589,
+      "publication_normalized_sha256": "f7bba2eaae394634ee7157cf739ac9792f29b27cbc183e101f8f8ddec47871fb"
+    },
+    {
+      "path": "telegram/src/main/java/local/ttlab/telegram/BridgePolicy.java",
+      "sha256": "ebff8aee9052bcd813440cab5b5fb6285deab2e8aac461c93300a07c35ffd78e",
+      "bytes": 2691,
+      "publication_normalized_sha256": "ebff8aee9052bcd813440cab5b5fb6285deab2e8aac461c93300a07c35ffd78e"
+    },
+    {
+      "path": "telegram/src/main/java/local/ttlab/telegram/CallerGate.java",
+      "sha256": "712a34efd5b4a197348e54f46b0c6b6fff969a3ffe3159b2b07c6b457f3643ef",
+      "bytes": 2301,
+      "publication_normalized_sha256": "712a34efd5b4a197348e54f46b0c6b6fff969a3ffe3159b2b07c6b457f3643ef"
+    },
+    {
+      "path": "telegram/src/main/java/local/ttlab/telegram/ConnectorDb.java",
+      "sha256": "504a538e6368bc3923305982af035c19748a8ec46b0b4a337ab170f211ae3873",
+      "bytes": 11400,
+      "publication_normalized_sha256": "504a538e6368bc3923305982af035c19748a8ec46b0b4a337ab170f211ae3873"
+    },
+    {
+      "path": "telegram/src/main/java/local/ttlab/telegram/ConnectorRuntime.java",
+      "sha256": "0773c9637dc042412efd3ebd7bdd8dbf82d3165f526daf73e188f05ae1844039",
+      "bytes": 7488,
+      "publication_normalized_sha256": "0773c9637dc042412efd3ebd7bdd8dbf82d3165f526daf73e188f05ae1844039"
+    },
+    {
+      "path": "telegram/src/main/java/local/ttlab/telegram/MainActivity.java",
+      "sha256": "eae0add80c6b3a45f0d746f8058ee018082f0b0b7d586893f8e2466d8523313d",
+      "bytes": 9296,
+      "publication_normalized_sha256": "7c4450a5c3213efa091495b3ada6f0954aa2df73aa4689fe237cfdca665301ca"
+    },
+    {
+      "path": "telegram/src/main/java/local/ttlab/telegram/SecureActivity.java",
+      "sha256": "04aeb4731f146a44ed90793d7d7fe1f4cf25f00ed4505b8cc5f37a72a00a1177",
+      "bytes": 10155,
+      "publication_normalized_sha256": "04aeb4731f146a44ed90793d7d7fe1f4cf25f00ed4505b8cc5f37a72a00a1177"
+    },
+    {
+      "path": "telegram/src/main/java/local/ttlab/telegram/SecureStore.java",
+      "sha256": "b28fea60909c261a0b561391e5305ce9cf6f645371fc908424379f111fae635a",
+      "bytes": 3968,
+      "publication_normalized_sha256": "b28fea60909c261a0b561391e5305ce9cf6f645371fc908424379f111fae635a"
+    },
+    {
+      "path": "telegram/src/main/java/local/ttlab/telegram/TelegramProvider.java",
+      "sha256": "312e3dd060e67cd8a73ceb33d88b62c0bce1ba1e1172e5abb3a9734c7ab35b69",
+      "bytes": 9366,
+      "publication_normalized_sha256": "312e3dd060e67cd8a73ceb33d88b62c0bce1ba1e1172e5abb3a9734c7ab35b69"
+    },
+    {
+      "path": "telegram/src/main/res/values/styles.xml",
+      "sha256": "1fff024b855116397954dfa3ba7039df5c19a0251552cb3fc9e4c5149fa395bb",
+      "bytes": 854,
+      "publication_normalized_sha256": "1fff024b855116397954dfa3ba7039df5c19a0251552cb3fc9e4c5149fa395bb"
+    },
+    {
+      "path": "telegram/src/test/java/local/ttlab/telegram/BridgePolicyTest.java",
+      "sha256": "61026be7448e799859ce0917744ff741d7db71d4eba573afb989e936997d22a4",
+      "bytes": 2335,
+      "publication_normalized_sha256": "61026be7448e799859ce0917744ff741d7db71d4eba573afb989e936997d22a4"
+    },
+    {
+      "path": "app/src/main/AndroidManifest.xml",
+      "sha256": "8390395b3449e12625054f1bd83d0a1a416bd5fd0fb1f4951cc1991a92b0074b",
+      "bytes": 3335,
+      "publication_normalized_sha256": "0a624d4ceb9fcb2263d6e02e4784772f6367d6070f453d58512e8950409f00c5"
+    },
+    {
+      "path": "app/build.gradle",
+      "sha256": "dea7e285893a16247787754912e37693c29ba4eaa3c92af00686e57c53dbf64c",
+      "bytes": 2600,
+      "publication_normalized_sha256": "f91c1f47cf12ae5d747dda3b793dcc3b57f2ac990592e58d2f361797ac6bc66e"
+    },
+    {
+      "path": "telegram/build.gradle",
+      "sha256": "a015571672b262c1fc8b83244927f2a86b0b66709a0fa1e5a01a3530cd33d732",
+      "bytes": 1711,
+      "publication_normalized_sha256": "ea19c60d72fb76f24644937e5c4dfc80dc93b6c7c674a6f881cf55ceead7c801"
+    },
+    {
+      "path": "build.gradle",
+      "sha256": "6964d0674d0f854e47d6afa6dbf426d1662b355dd264a7c42133c09ffaca41a7",
+      "bytes": 69,
+      "publication_normalized_sha256": "6964d0674d0f854e47d6afa6dbf426d1662b355dd264a7c42133c09ffaca41a7"
+    },
+    {
+      "path": "settings.gradle",
+      "sha256": "2dbdd023067eb016ce531b3a3b83bdae8adb6bb60fe0c186fd198fcdd73f54dd",
+      "bytes": 292,
+      "publication_normalized_sha256": "2dbdd023067eb016ce531b3a3b83bdae8adb6bb60fe0c186fd198fcdd73f54dd"
+    },
+    {
+      "path": "gradle.properties",
+      "sha256": "c05c91f7bdd6261b264a84c7e4b8d9cd99b054821a69e1add26f72b94e0c54db",
+      "bytes": 109,
+      "publication_normalized_sha256": "c05c91f7bdd6261b264a84c7e4b8d9cd99b054821a69e1add26f72b94e0c54db"
+    },
+    {
+      "path": "telegram/build-engine.ps1",
+      "sha256": "3d1d77e89cacecbf1584fcab7d379c2845b16cf79ca79ce6c996827168fe0ce5",
+      "bytes": 4586,
+      "publication_normalized_sha256": "498c82a2d89f72e588313a1156682a9831e3b1f74f3592f1ec6f1d4d589f61e7"
+    },
+    {
+      "path": "tools/prepare_semantic.py",
+      "sha256": "ec3195f3ab8c759d05f534f2d1aac7f78f28d1868f112bc33cb91df9704e5819",
+      "bytes": 6004,
+      "publication_normalized_sha256": "ec3195f3ab8c759d05f534f2d1aac7f78f28d1868f112bc33cb91df9704e5819"
+    },
+    {
+      "path": "telegram/engine/catalogue.go",
+      "sha256": "5031cae7379278d094d84bbf5c6a6ea6de6f986a9cdfba6ccd49c03781fefe31",
+      "bytes": 5679,
+      "publication_normalized_sha256": "5031cae7379278d094d84bbf5c6a6ea6de6f986a9cdfba6ccd49c03781fefe31"
+    },
+    {
+      "path": "telegram/engine/catalogue_test.go",
+      "sha256": "4adf09d4186d81a403d4c633bef54ac549c98892b6f2a9d9b2160ebf2339fa16",
+      "bytes": 2548,
+      "publication_normalized_sha256": "4adf09d4186d81a403d4c633bef54ac549c98892b6f2a9d9b2160ebf2339fa16"
+    },
+    {
+      "path": "telegram/engine/client.go",
+      "sha256": "b8907cd68358b638450e9d7fe248f3ce2435d6721ffe53f3bd3fac6c5b3a31ac",
+      "bytes": 11824,
+      "publication_normalized_sha256": "b8907cd68358b638450e9d7fe248f3ce2435d6721ffe53f3bd3fac6c5b3a31ac"
+    },
+    {
+      "path": "telegram/engine/client_test.go",
+      "sha256": "ea458eb9f4325b776e1049e0a51debf33945cf32022c1c3b3431b9f232e8ff24",
+      "bytes": 5424,
+      "publication_normalized_sha256": "ea458eb9f4325b776e1049e0a51debf33945cf32022c1c3b3431b9f232e8ff24"
+    },
+    {
+      "path": "telegram/engine/go.mod",
+      "sha256": "636f4ab7bebfdf7091306db28622f4f4f9289825556594d655a1c54ff430096e",
+      "bytes": 1210,
+      "publication_normalized_sha256": "636f4ab7bebfdf7091306db28622f4f4f9289825556594d655a1c54ff430096e"
+    },
+    {
+      "path": "telegram/engine/go.sum",
+      "sha256": "59632483437a6280bd8942d97d8b0b4510bcd966ed4fa2475eddecfd79c00da8",
+      "bytes": 5054,
+      "publication_normalized_sha256": "59632483437a6280bd8942d97d8b0b4510bcd966ed4fa2475eddecfd79c00da8"
+    },
+    {
+      "path": "telegram/engine/media.go",
+      "sha256": "eb98f2726824d49d9358067bafb221348314435f25221b668227bb8e3d5087fb",
+      "bytes": 5228,
+      "publication_normalized_sha256": "eb98f2726824d49d9358067bafb221348314435f25221b668227bb8e3d5087fb"
+    },
+    {
+      "path": "telegram/engine/media_test.go",
+      "sha256": "82e97cedf5a9215cee586616b3f68c363a92c7ea49601f305ead791ac242ec69",
+      "bytes": 2839,
+      "publication_normalized_sha256": "82e97cedf5a9215cee586616b3f68c363a92c7ea49601f305ead791ac242ec69"
+    },
+    {
+      "path": "telegram/engine/model.go",
+      "sha256": "f22d8ef27eba20e8c490643c7f3b5cee20ee2f36afca695f37e787c599ff07bb",
+      "bytes": 1874,
+      "publication_normalized_sha256": "f22d8ef27eba20e8c490643c7f3b5cee20ee2f36afca695f37e787c599ff07bb"
+    },
+    {
+      "path": "telegram/engine/model_test.go",
+      "sha256": "2df1b2c51cb70e80cf471d2868235f22bb0b449d34d69727e0a9160fcc6696f5",
+      "bytes": 2558,
+      "publication_normalized_sha256": "2df1b2c51cb70e80cf471d2868235f22bb0b449d34d69727e0a9160fcc6696f5"
+    },
+    {
+      "path": "telegram/engine/read.go",
+      "sha256": "365e4f62bb8d5c72c8d2a47bcd0386dd6edb4c6d1e51f6cd0c12782ecdac7bd8",
+      "bytes": 5816,
+      "publication_normalized_sha256": "365e4f62bb8d5c72c8d2a47bcd0386dd6edb4c6d1e51f6cd0c12782ecdac7bd8"
+    },
+    {
+      "path": "telegram/engine/read_test.go",
+      "sha256": "288c210af5d767ce4ae5745782820e70975f4b9038157fc089bafdd2fcb2608a",
+      "bytes": 5726,
+      "publication_normalized_sha256": "288c210af5d767ce4ae5745782820e70975f4b9038157fc089bafdd2fcb2608a"
+    },
+    {
+      "path": "telegram/engine/request.go",
+      "sha256": "1b585ba6264b9af8ce626802c55f7732e9393ccdc9b538673bf4e10fd693f3dd",
+      "bytes": 3401,
+      "publication_normalized_sha256": "1b585ba6264b9af8ce626802c55f7732e9393ccdc9b538673bf4e10fd693f3dd"
+    },
+    {
+      "path": "telegram/engine/session.go",
+      "sha256": "3330e44c7367d5ceaba1eb22d2844473e5afe6c15eeaae3343a62ad39abb522d",
+      "bytes": 1875,
+      "publication_normalized_sha256": "3330e44c7367d5ceaba1eb22d2844473e5afe6c15eeaae3343a62ad39abb522d"
+    },
+    {
+      "path": "telegram/engine/THIRD_PARTY_NOTICES.txt",
+      "sha256": "17f655bffc4d922a93c291c6c68381331c2edd1b4558807124b6c25705d96a95",
+      "bytes": 81691,
+      "publication_normalized_sha256": "d01a605496504e784027d0ade3eb8128d9014a394642725304524582725ae2c2"
+    },
+    {
+      "path": "telegram/engine/version.go",
+      "sha256": "6c5038ef72c3b1d66a90edf3662086ce0862814aaf463862fe65f62af5ad9094",
+      "bytes": 193,
+      "publication_normalized_sha256": "6c5038ef72c3b1d66a90edf3662086ce0862814aaf463862fe65f62af5ad9094"
+    },
+    {
+      "path": "telegram/engine/version_test.go",
+      "sha256": "a24f648bc9cf3766091ba98088333f4226773c51968927f0e57f688eb3b26580",
+      "bytes": 237,
+      "publication_normalized_sha256": "a24f648bc9cf3766091ba98088333f4226773c51968927f0e57f688eb3b26580"
+    },
+    {
+      "path": "app/src/main/assets/licenses/media3.txt",
+      "sha256": "7e04b4e6b4e3b3e35a2efdbbab633f97c72135e7d9baea90ffb64284b97c3ae1",
+      "bytes": 11641,
+      "publication_normalized_sha256": "7fd8afb3a0993d7d98ef69ea5a4529da2438c5476db5d272d6b29e7a6839328e"
+    },
+    {
+      "path": "app/src/main/assets/ml/semantic/LICENSE-TEXT.txt",
+      "sha256": "624b030fd62b8b989dd502d5bb6322cbc0dbb524ab9c9708f32efe33d7275735",
+      "bytes": 11338,
+      "publication_normalized_sha256": "624b030fd62b8b989dd502d5bb6322cbc0dbb524ab9c9708f32efe33d7275735"
+    },
+    {
+      "path": "app/src/main/assets/ml/semantic/LICENSE-VISION.txt",
+      "sha256": "987e63b32f6c89ff5160e429458a872ff048e6860b590a3912e938f9da8f14db",
+      "bytes": 1064,
+      "publication_normalized_sha256": "987e63b32f6c89ff5160e429458a872ff048e6860b590a3912e938f9da8f14db"
+    },
+    {
+      "path": "app/src/main/assets/ml/semantic/LICENSE-RUNTIME.txt",
+      "sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c",
+      "bytes": 1073,
+      "publication_normalized_sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c"
+    },
+    {
+      "path": "app/src/main/assets/ml/semantic/PROVENANCE.json",
+      "sha256": "a80e5c55765cd1d74b9bf6e70e0937024829b868bdc7454e45d766191b50955c",
+      "bytes": 1606,
+      "publication_normalized_sha256": "e17a22cead309493e271324f47d5cad26002804f60a1b805d77f36ea474f7cf6"
+    },
+    {
+      "path": "app/src/main/assets/ml/semantic/wordpiece.txt",
+      "sha256": "fe0fda7c425b48c516fc8f160d594c8022a0808447475c1a7c6d6479763f310c",
+      "bytes": 995526,
+      "publication_normalized_sha256": "fe0fda7c425b48c516fc8f160d594c8022a0808447475c1a7c6d6479763f310c"
+    }
+  ],
+  "publication_changes": [
+    {
+      "path": "app/build.gradle",
+      "publication_sha256": "00e0fd1b70a38238891858dbcba918ae9bf625bd211b97cdb7aad22886bf4de1"
+    },
+    {
+      "path": "telegram/build.gradle",
+      "publication_sha256": "932e00de2b6fc2a0761221a8cdcb5e1ba80bd8c57cfb86bea8291d5a881c215c"
+    },
+    {
+      "path": "telegram/build-engine.ps1",
+      "publication_sha256": "498c82a2d89f72e588313a1156682a9831e3b1f74f3592f1ec6f1d4d589f61e7"
+    }
+  ],
+  "excluded_tato_implementation": {
+    "source": "bridge/src and the original exporter",
+    "publication": "connectors/tato/README.md contract only",
+    "reason": "Original-client embedding and repackaging are outside this source distribution."
+  },
+  "line_endings": "Git normalizes text to LF. PowerShell checkouts use CRLF. SHA-256 values in copied describe original bytes."
+}
