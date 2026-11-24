@@ -140,6 +140,10 @@ final class WebNetwork {
         }
         synchronized (this) {
             current(generation);
+            if (site == WebSite.GELBOORU && page == 0) {
+                known.clear();
+                lastImage = null;
+            }
             for (Post post : posts) remember(post);
         }
         return new Page(posts, rows.length() == WebPolicy.PAGE_SIZE && page + 1 < WebPolicy.MAX_PAGES);
@@ -330,7 +334,7 @@ final class WebNetwork {
         connection.setConnectTimeout(7000);
         connection.setReadTimeout(9000);
         connection.setRequestProperty("Accept-Encoding", "identity");
-        connection.setRequestProperty("User-Agent", "MediaGallery-Android/2.21 (optional web connector)");
+        connection.setRequestProperty("User-Agent", "MediaGallery-Android/2.22 (optional web connector)");
         synchronized (this) {
             current(generation);
             if (active.size() >= 6) throw new IOException("E_WEB_BUSY");
@@ -354,12 +358,13 @@ final class WebNetwork {
         }
     }
 
-    private static void checkCachePolicy(HttpURLConnection connection) throws IOException {
+    private void checkCachePolicy(HttpURLConnection connection) throws IOException {
+        if (site == WebSite.GELBOORU) return; // The bridge admits Gelbooru only for a memory-only viewer session.
         String policy = connection.getHeaderField("Cache-Control");
         if (policy != null && policy.toLowerCase(Locale.ROOT).contains("no-store")) throw new IOException("E_WEB_NO_STORE");
     }
 
-    private static void validateType(HttpURLConnection connection, String expected) throws IOException {
+    private void validateType(HttpURLConnection connection, String expected) throws IOException {
         checkCachePolicy(connection);
         String type = connection.getContentType();
         String encoding = connection.getContentEncoding();

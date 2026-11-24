@@ -91,10 +91,12 @@ final class VariantTransport {
                 }
                 JSONArray rows = new JSONArray();
                 if (id != null) rows.put(row(Integer.parseInt(id), gelbooru));
-                else if (tags.contains(expectedTag)) {
+                else if (gelbooru ? tags.endsWith("sort:id:desc") : tags.contains(expectedTag)) {
+                    int queryOffset = gelbooru && tags.startsWith("fixture_home ") ? 100
+                            : gelbooru && tags.startsWith("fixture_search ") ? 200 : 0;
                     int high = "0".equals(page) ? 100 : 70;
                     int low = "0".equals(page) ? 71 : 63;
-                    for (int n = high; n >= low; n--) rows.put(row(n, gelbooru));
+                    for (int n = high; n >= low; n--) rows.put(row(n + queryOffset, gelbooru));
                 }
                 if (!gelbooru) return rows.toString();
                 JSONObject envelope = new JSONObject().put("@attributes", new JSONObject()
@@ -123,6 +125,8 @@ final class VariantTransport {
         @Override public long getContentLengthLong() { return count; }
         @Override public String getContentType() { return type; }
         @Override public String getHeaderField(String key) {
+            if ("Cache-Control".equalsIgnoreCase(key) && uri.getHost().endsWith(".gelbooru.com")) return "private, no-store";
+            if ("Cache-Control".equalsIgnoreCase(key) && "gelbooru.com".equals(uri.getHost())) return "no-store";
             if ("ETag".equalsIgnoreCase(key)) return etag;
             if ("Content-Range".equalsIgnoreCase(key)) return range;
             return null;

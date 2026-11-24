@@ -14,10 +14,16 @@ final class Library {
     final ChatFolders chatFolders;
     Library(Context c,String name)throws Exception{this(c.getDatabasePath(name),new Vault(c).databaseKey());}
     Library(File path,byte[] key)throws Exception{
-        System.loadLibrary("sqlcipher");path.getParentFile().mkdirs();
-        // SQLCipher keeps the key for future WAL connections; callers may wipe their input.
-        db=SQLiteDatabase.openOrCreateDatabase(path,key.clone(),null,null);
-        db.enableWriteAheadLogging();db.execSQL("PRAGMA temp_store=MEMORY");
+        System.loadLibrary("sqlcipher");
+        if(path==null){
+            db=SQLiteDatabase.openOrCreateDatabase(":memory:",key.clone(),null,null);
+        }else{
+            path.getParentFile().mkdirs();
+            // SQLCipher keeps the key for future WAL connections; callers may wipe their input.
+            db=SQLiteDatabase.openOrCreateDatabase(path,key.clone(),null,null);
+            db.enableWriteAheadLogging();
+        }
+        db.execSQL("PRAGMA temp_store=MEMORY");
         db.execSQL("CREATE TABLE IF NOT EXISTS saved_collections(id INTEGER PRIMARY KEY AUTOINCREMENT,name TEXT NOT NULL,filter TEXT NOT NULL,updated INTEGER NOT NULL)");
         db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS saved_collections_name ON saved_collections(name COLLATE NOCASE)");
         db.execSQL("CREATE TABLE IF NOT EXISTS storage_owners(hash TEXT PRIMARY KEY,channel INTEGER NOT NULL,kind INTEGER NOT NULL CHECK(kind IN(0,1)))");

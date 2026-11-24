@@ -15,7 +15,7 @@ abstract class SecureActivity extends Activity {
     @Override protected void onCreate(Bundle b){
         super.onCreate(b);getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);getWindow().setHideOverlayWindows(true);
         getWindow().getDecorView().setOnApplyWindowInsetsListener((view,insets)->{android.graphics.Insets bars=insets.getInsets(android.view.WindowInsets.Type.systemBars());view.setPadding(bars.left,bars.top,bars.right,bars.bottom);return insets;});
-        try{String key=b!=null?b.getString("source",UiSource.key(this)):getIntent().getStringExtra("source");state=State.get(this,key==null?UiSource.key(this):key);getIntent().putExtra("source",state.key);}catch(Exception error){TextView message=new TextView(this);message.setText("No se pudo abrir el almacén cifrado. Libera espacio y reinicia la aplicación. No borres sus datos si tienes descargas que quieras conservar.");super.setContentView(message);}
+        try{String key=b!=null?b.getString("source",UiSource.key(this)):getIntent().getStringExtra("source");state=State.resolve(this,key==null?UiSource.key(this):key,getIntent().getStringExtra("web-live"));getIntent().putExtra("source",state.key);}catch(Exception error){if(getIntent().hasExtra("web-live")){finish();return;}TextView message=new TextView(this);message.setText("No se pudo abrir el almacén cifrado. Libera espacio y reinicia la aplicación. No borres sus datos si tienes descargas que quieras conservar.");super.setContentView(message);}
     }
     void content(View view){frame=new FrameLayout(this);frame.addView(view);super.setContentView(frame);}
     @Override protected void onResume(){super.onResume();resumed=true;if(state==null||frame==null)return;

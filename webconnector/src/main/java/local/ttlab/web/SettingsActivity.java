@@ -38,7 +38,7 @@ public final class SettingsActivity extends Activity {
         layout.addView(title);
         TextView notice = new TextView(this);
         String ratings = site == WebSite.GELBOORU
-                ? "Se incluyen todas las clasificaciones que devuelve Gelbooru. "
+                ? "Se muestran los resultados de Gelbooru durante la sesión. La galería solo guarda los ajustes. "
                 : "Solo aparecen publicaciones que el sitio clasifica como seguras. ";
         notice.setText("Fuente opcional para mayores de edad. " + ratings
                 + "El sitio recibe tu IP, tus búsquedas y tus credenciales de API. La galería guarda su biblioteca web por separado.");

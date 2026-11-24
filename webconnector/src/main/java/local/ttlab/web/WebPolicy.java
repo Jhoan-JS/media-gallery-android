@@ -40,6 +40,7 @@ final class WebPolicy {
     static String query(WebSite site, String input) {
         if (input == null) throw new IllegalArgumentException("E_WEB_TAGS");
         String tags = input.trim();
+        if (site == WebSite.GELBOORU && tags.isEmpty()) return "sort:id:desc";
         if (tags.length() > 320 || tags.isEmpty()) throw new IllegalArgumentException("E_WEB_TAGS");
         String[] words = tags.split("\\s+");
         if (words.length > 8) throw new IllegalArgumentException("E_WEB_TAGS");
@@ -52,7 +53,7 @@ final class WebPolicy {
         }
         if (!positive) throw new IllegalArgumentException("E_WEB_TAGS");
         String query = String.join(" ", words);
-        return site.requiredRatingTag.isEmpty() ? query : query + " " + site.requiredRatingTag;
+        return query + (site == WebSite.GELBOORU ? " sort:id:desc" : " " + site.requiredRatingTag);
     }
 
     static String mime(URI uri) {

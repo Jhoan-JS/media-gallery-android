@@ -17,6 +17,7 @@ final class MediaCache {
     VisualIndex visual;
     private final StorageIndex storage;
     private final Library library;
+    private final boolean memoryOnly;
     private final Object coverLock=new Object();
     private final LruCache<String,Boolean> checkedCovers=new LruCache<>(2048);
     private final LruCache<String,Bitmap> selectedCovers=new LruCache<String,Bitmap>(4*1024*1024){
@@ -27,7 +28,14 @@ final class MediaCache {
     private final LruCache<String,byte[]> decoded=new LruCache<String,byte[]>(4*1024*1024){@Override protected int sizeOf(String key,byte[] bytes){return bytes.length;}};
     private final Object[] chunkLocks=new Object[16];
     MediaCache(Context c,Vault v,Source s){this(c,v,s,null);}
-    MediaCache(Context c,Vault v,Source s,Library library){context=c;vault=v;source=s;this.library=library;storage=library==null?null:new StorageIndex(library,v);for(int n=0;n<chunkLocks.length;n++)chunkLocks[n]=new Object();}
+    MediaCache(Context c,Vault v,Source s,Library library){this(c,v,s,library,false);}
+    MediaCache(Context c,Vault v,Source s,Library library,boolean memoryOnly){
+        context=c;vault=v;source=s;this.library=library;this.memoryOnly=memoryOnly;
+        storage=library==null||memoryOnly?null:new StorageIndex(library,v);
+        for(int n=0;n<chunkLocks.length;n++)chunkLocks[n]=new Object();
+    }
+    private void writeCache(String id,byte[] bytes)throws Exception{if(!memoryOnly)vault.put(id,bytes);}
+    private byte[] readCache(String id)throws Exception{return memoryOnly?null:vault.get(id);}
     private void track(Item item,boolean thumb,int index){track(item,thumb,index,false);}
     private void track(Item item,boolean thumb,int index,boolean force){if(storage==null)return;String id=item.cacheKey()+":"+(thumb?"thumb":index);if(!force&&registered.get(id)!=null)return;try{storage.record(item,thumb,index);registered.put(id,true);}catch(RuntimeException unavailable){/* Derived ownership can be rebuilt; media reads remain usable. */}}
     byte[] chunk(Item item,int index)throws Exception{return chunk(item,index,()->false);}
@@ -35,19 +43,19 @@ final class MediaCache {
         checkPreviewActive(cancelled);
         int expected=(int)Math.min(Source.CHUNK,item.size-(long)index*Source.CHUNK);if(index<0||expected<=0)throw new IOException("Rango inválido");
         String id="media/"+item.cacheKey()+"/"+index;
-        synchronized(chunkLocks[(id.hashCode()&Integer.MAX_VALUE)%chunkLocks.length]){byte[] bytes=cachedChunk(item,index);if(bytes==null){bytes=source.chunk(item,index);checkPreviewActive(cancelled);if(bytes.length!=expected)throw new IOException("Bloque incompleto o de otra versión");vault.put(id,bytes);decoded.put(id,bytes);track(item,false,index,true);}track(item,false,index);return bytes;}
+        synchronized(chunkLocks[(id.hashCode()&Integer.MAX_VALUE)%chunkLocks.length]){byte[] bytes=cachedChunk(item,index);if(bytes==null){bytes=source.chunk(item,index);checkPreviewActive(cancelled);if(bytes.length!=expected)throw new IOException("Bloque incompleto o de otra versión");writeCache(id,bytes);decoded.put(id,bytes);track(item,false,index,true);}track(item,false,index);return bytes;}
     }
     byte[] memoryChunk(Item item,int index){return decoded.get("media/"+item.cacheKey()+"/"+index);}
     byte[] cachedChunk(Item item,int index)throws IOException{
         int expected=(int)Math.min(Source.CHUNK,item.size-(long)index*Source.CHUNK);if(index<0||expected<=0)throw new IOException("Rango inválido");
         String id="media/"+item.cacheKey()+"/"+index;byte[] bytes=decoded.get(id);if(bytes!=null)return bytes;
-        try{bytes=vault.get(id);}catch(java.security.GeneralSecurityException corrupt){try{vault.remove(id);}catch(Exception error){throw new IOException(error);}return null;}catch(Exception error){throw new IOException(error);}
+        try{bytes=readCache(id);}catch(java.security.GeneralSecurityException corrupt){try{vault.remove(id);}catch(Exception error){throw new IOException(error);}return null;}catch(Exception error){throw new IOException(error);}
         if(bytes!=null){if(bytes.length!=expected)throw new IOException("Bloque incompleto o de otra versión");decoded.put(id,bytes);track(item,false,index);}return bytes;
     }
     boolean hasChunk(Item item,int index){
         String id="media/"+item.cacheKey()+"/"+index;
         // Presence is only a scheduling hint; cachedChunk still authenticates bytes before use.
-        return decoded.get(id)!=null||vault.file(id).isFile();
+        return decoded.get(id)!=null||(!memoryOnly&&vault.file(id).isFile());
     }
     void fillRange(Item item,int first,int count)throws Exception{fillRange(item,first,count,()->false);}
     void fillRange(Item item,int first,int count,BooleanSupplier cancelled)throws Exception{
@@ -61,7 +69,7 @@ final class MediaCache {
         while(cursor<end){checkPreviewActive(cancelled);if(cachedChunk(item,cursor)!=null){published.accept(cursor++);continue;}
             int maximum=Math.min(end-cursor,source.rangeSize()/Source.CHUNK),amount=1;while(amount<maximum&&!hasChunk(item,cursor+amount))amount++;
             final int begin=cursor,blocks=amount;final int[] next={cursor};
-            source.rangeBlocks(item,cursor,amount,signal,(index,block)->{checkPreviewActive(cancelled);int expected=(int)Math.min(Source.CHUNK,item.size-(long)index*Source.CHUNK);if(index!=next[0]||index>=begin+blocks||block.length!=expected)throw new IOException("Rango incompleto");String id="media/"+item.cacheKey()+"/"+index;vault.put(id,block);decoded.put(id,block);track(item,false,index,true);next[0]++;published.accept(index);});
+            source.rangeBlocks(item,cursor,amount,signal,(index,block)->{checkPreviewActive(cancelled);int expected=(int)Math.min(Source.CHUNK,item.size-(long)index*Source.CHUNK);if(index!=next[0]||index>=begin+blocks||block.length!=expected)throw new IOException("Rango incompleto");String id="media/"+item.cacheKey()+"/"+index;writeCache(id,block);decoded.put(id,block);track(item,false,index,true);next[0]++;published.accept(index);});
             if(next[0]!=cursor+amount)throw new IOException("Rango incompleto");cursor+=amount;
         }
     }
@@ -69,16 +77,16 @@ final class MediaCache {
     Bitmap thumbnail(Item item)throws Exception{
         try{return thumbnailOnly(item);}catch(java.io.FileNotFoundException absent){
             if(item.video()||item.size>Source.CHUNK)throw absent;
-            byte[] bytes=source.chunk(item,0);Bitmap result=decodePreview(item,bytes);vault.put("thumb/"+item.cacheKey(),bytes);track(item,true,0,true);return result;
+            byte[] bytes=source.chunk(item,0);Bitmap result=decodePreview(item,bytes);writeCache("thumb/"+item.cacheKey(),bytes);track(item,true,0,true);return result;
         }
     }
     Bitmap thumbnailOnly(Item item)throws Exception{
         Bitmap found=previews.get(item.cacheKey());if(found!=null)return found;
         String id="thumb/"+item.cacheKey();byte[] bytes;
-        try{bytes=vault.get(id);}catch(java.security.GeneralSecurityException corrupt){vault.remove(id);bytes=null;}
+        try{bytes=readCache(id);}catch(java.security.GeneralSecurityException corrupt){vault.remove(id);bytes=null;}
         if(bytes!=null){try{return decodePreview(item,bytes);}catch(IOException invalid){vault.remove(id);}}
         try{
-            bytes=source.thumbnail(item);checkPreviewActive(()->false);Bitmap result=decodePreview(item,bytes);vault.put(id,bytes);track(item,true,0,true);return result;
+            bytes=source.thumbnail(item);checkPreviewActive(()->false);Bitmap result=decodePreview(item,bytes);writeCache(id,bytes);track(item,true,0,true);return result;
         }catch(IOException|IllegalStateException unavailable){
             if(item.video())return rememberVideoThumbnail(item,false,()->false);
             throw unavailable;
@@ -86,7 +94,7 @@ final class MediaCache {
     }
     Bitmap availableThumbnail(Item item)throws Exception{
         Bitmap found=previews.get(item.cacheKey());if(found!=null)return found;
-        byte[] bytes=vault.get("thumb/"+item.cacheKey());
+        byte[] bytes=readCache("thumb/"+item.cacheKey());
         if(bytes==null)throw new IOException("Visita la imagen en Biblioteca para guardar su miniatura antes de analizarla");
         return decodePreview(item,bytes);
     }
@@ -99,7 +107,7 @@ final class MediaCache {
         if(result==null)throw new IOException("Miniatura no disponible");previews.put(item.cacheKey(),result);return result;
     }
     void remember(Item item,Bitmap bitmap)throws Exception{remember(item,bitmap,()->false);}
-    private void remember(Item item,Bitmap bitmap,BooleanSupplier cancelled)throws Exception{byte[] bytes=previewBytes(bitmap);checkPreviewActive(cancelled);vault.put("thumb/"+item.cacheKey(),bytes);track(item,true,0,true);Bitmap preview=BitmapFactory.decodeByteArray(bytes,0,bytes.length);if(preview!=null){previews.put(item.cacheKey(),preview);}}
+    private void remember(Item item,Bitmap bitmap,BooleanSupplier cancelled)throws Exception{byte[] bytes=previewBytes(bitmap);checkPreviewActive(cancelled);writeCache("thumb/"+item.cacheKey(),bytes);track(item,true,0,true);Bitmap preview=BitmapFactory.decodeByteArray(bytes,0,bytes.length);if(preview!=null){previews.put(item.cacheKey(),preview);}}
 
     Bitmap memoryPreview(Item item) {
         if(!item.video()||library==null)return previews.get(item.cacheKey());
@@ -179,6 +187,7 @@ final class MediaCache {
         ByteArrayOutputStream output=new ByteArrayOutputStream();small.compress(Bitmap.CompressFormat.JPEG,80,output);if(small!=original)small.recycle();if(output.size()>Source.CHUNK)throw new IOException("Miniatura demasiado grande");return output.toByteArray();
     }
     void keepThumbnail(Item item)throws Exception{
+        if(memoryOnly)throw new IOException("La fuente no guarda archivos sin conexión");
         String id="thumb/"+item.cacheKey();byte[] bytes=vault.get(id);
         if(bytes!=null){try{decodePreview(item,bytes);}catch(IOException invalid){vault.remove(id);bytes=null;}}
         if(bytes==null){
@@ -198,7 +207,7 @@ final class MediaCache {
     Bitmap rememberVideoThumbnail(Item item,boolean allowRemote,BooleanSupplier cancelled)throws Exception{
         if(!item.video())throw new IllegalArgumentException("Se requiere un video");checkPreviewActive(cancelled);
         String id="thumb/"+item.cacheKey();
-        try{byte[] bytes=vault.get(id);if(bytes!=null)return decodePreview(item,bytes);}catch(IOException|java.security.GeneralSecurityException absentOrInvalid){vault.remove(id);}
+        try{byte[] bytes=readCache(id);if(bytes!=null)return decodePreview(item,bytes);}catch(IOException|java.security.GeneralSecurityException absentOrInvalid){vault.remove(id);}
         Bitmap found=previews.get(item.cacheKey());if(found!=null){remember(item,found,cancelled);return previews.get(item.cacheKey());}
         // shortcut: the 5 s deadline is checked between reads; the existing provider RPC can still block until its timeout.
         long deadline=android.os.SystemClock.elapsedRealtime()+VIDEO_PREVIEW_MILLIS;
@@ -242,7 +251,7 @@ final class MediaCache {
         @Override public long getSize(){return item.size;}
         @Override public void close(){closed=true;}
     };}
-    void keepChunk(Item item,int index,byte[] bytes)throws Exception{vault.keep("media/"+item.cacheKey()+"/"+index,bytes);track(item,false,index,true);}
-    void removeDownload(Item item)throws Exception{for(int i=0;i<item.chunks();i++)vault.unpin("media/"+item.cacheKey()+"/"+i);vault.unpin("thumb/"+item.cacheKey());}
+    void keepChunk(Item item,int index,byte[] bytes)throws Exception{if(memoryOnly)throw new IOException("La fuente no guarda archivos sin conexión");vault.keep("media/"+item.cacheKey()+"/"+index,bytes);track(item,false,index,true);}
+    void removeDownload(Item item)throws Exception{if(memoryOnly)return;for(int i=0;i<item.chunks();i++)vault.unpin("media/"+item.cacheKey()+"/"+i);vault.unpin("thumb/"+item.cacheKey());}
     static byte[] read(InputStream input,int max)throws Exception{ByteArrayOutputStream out=new ByteArrayOutputStream();byte[] buffer=new byte[8192];int n;while((n=input.read(buffer))!=-1){if(out.size()+n>max)throw new IOException("Respuesta demasiado grande");out.write(buffer,0,n);}return out.toByteArray();}
 }

@@ -1,17 +1,19 @@
 # Optional Web Connector
 
-Gallery 2.21 and Web Connector 1.2 support Rule34.xxx and Gelbooru. Install both
+Gallery 2.22 and Web Connector 1.3 support Rule34.xxx and Gelbooru. Install both
 APK files in the same Android user with the same signing certificate. Android 12
 or later is required. Telegram Connector 1.1 and the local Tato interface use
 their existing protocols.
 
 1. Unlock the gallery and choose **Gelbooru** or **Rule34.xxx** in the source picker.
-2. Tap **Configurar**. Enter the selected site's account ID and API key on the
+2. Tap **Conectar**. Enter the selected site's account ID and API key on the
    connector screen, then tap **Habilitar y autorizar**. Gelbooru lists these
    values under **API Access Credentials** in its account options.
    The gallery cannot read the key.
-3. Enter one to eight tags and tap **Buscar**. Use **Todo**, **Imágenes** or
-   **Videos** to filter the loaded pages. **Cargar más** reads the next page.
+3. Gelbooru loads recent posts on entry. Set **Etiquetas de inicio** under
+   settings to load recent posts that match all your chosen tags. Typing in
+   the search field searches after a short pause. Use **Todo**, **Imágenes**
+   or **Videos** to filter loaded pages. **Cargar más** reads the next page.
 4. Tap a tile to open the existing viewer. **Etiquetas del sitio** starts a
    search for the selected tag. Use the source picker to leave and return.
 
@@ -19,11 +21,13 @@ Each web source is off by default. Gelbooru includes every rating returned
 by its API. Gelbooru controls what the API returns for the account. Rule34.xxx
 shows posts rated **Safe**. Searches go to the selected site and media requests
 go to its accepted CDN hosts. Each
-site has its own encrypted searches, position, favorites, history, metadata
-and bounded temporary cache. **Revocar y apagar** removes the selected site's
-API key and stops its requests. The last catalog and local marks are retained
-for the same account. One account per site is supported. Web libraries currently
-have no export or permanent downloads.
+site has its own settings and account. Gelbooru handles its responses with a
+temporary in-memory library and media buffers, including when the site sends
+`Cache-Control: no-store`. Its recent posts, search results and viewer marks
+are cleared when that session ends. Startup tags and credentials remain
+encrypted. Rule34.xxx uses its existing encrypted library and cache.
+**Revocar y apagar** removes the selected site's API key and stops its requests.
+Web libraries have no export or permanent downloads.
 
 Playback uses the existing Media3 player. A successful seek requires a
 compatible codec, correct HTTP content ranges, and a stable media version

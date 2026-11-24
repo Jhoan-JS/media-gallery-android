@@ -31,10 +31,12 @@ public final class WebProvider extends ContentProvider {
 
     private static final class Media {
         final long generation;
+        final String live;
         final WebNetwork.Post post;
         final WebNetwork.Representation representation;
-        Media(long generation, WebNetwork.Post post, WebNetwork.Representation representation) {
+        Media(long generation, String live, WebNetwork.Post post, WebNetwork.Representation representation) {
             this.generation = generation;
+            this.live = live;
             this.post = post;
             this.representation = representation;
         }
@@ -68,8 +70,9 @@ public final class WebProvider extends ContentProvider {
                 return cursor;
             }
             boolean identity = path.equals(List.of("identity"));
-            WebSettings.Config config = settings.active(identity ? null : required(uri, "account", "[0-9a-f]{64}"));
-            long generation = settings.generation(config);
+            String token = uri.getQueryParameter("live");
+            WebSettings.Config config = settings.active(identity ? null : required(uri, "account", "[0-9a-f]{64}"), token);
+            long generation = settings.generation(config, token);
             if (identity) {
                 MatrixCursor cursor = new MatrixCursor(new String[]{"account"});
                 cursor.addRow(new Object[]{config.account});
@@ -95,7 +98,8 @@ public final class WebProvider extends ContentProvider {
                 WebNetwork.Representation rep = settings.network.describe(post, generation, signal);
                 settings.network.current(generation);
                 synchronized (media) {
-                    media.put(settings.site.id + "/" + post.id + "/" + rep.version, new Media(generation, post, rep));
+                    settings.network.current(generation);
+                    media.put(settings.site.id + "/" + generation + "/" + post.id + "/" + rep.version, new Media(generation, token, post, rep));
                     if (media.size() > 8) media.remove(media.keySet().iterator().next());
                 }
                 MatrixCursor cursor = new MatrixCursor(new String[]{"size", "version"});
@@ -114,9 +118,21 @@ public final class WebProvider extends ContentProvider {
 
     @Override public Bundle call(String method, String arg, Bundle extras) {
         WebSettings.requireProvider(getContext(), getCallingPackage());
-        if (!"cancel".equals(method) || arg == null || !arg.matches("[0-9a-f-]{36}")) {
-            throw new IllegalArgumentException("E_WEB_REQUEST");
+        if (arg == null || !arg.matches("[0-9a-f-]{36}")) throw new IllegalArgumentException("E_WEB_REQUEST");
+        if ("beginGelbooru".equals(method) || "endGelbooru".equals(method)) {
+            try {
+                WebSettings gelbooru = WebSettings.get(getContext(), WebSite.GELBOORU);
+                boolean begun = "beginGelbooru".equals(method);
+                boolean changed = begun ? gelbooru.startLive(arg) : gelbooru.endLive(arg);
+                if (!begun) {
+                    synchronized (media) { media.values().removeIf(entry -> arg.equals(entry.live)); }
+                }
+                Bundle result = new Bundle();
+                result.putBoolean("active", changed);
+                return result;
+            } catch (Exception unavailable) { return Bundle.EMPTY; }
         }
+        if (!"cancel".equals(method)) throw new IllegalArgumentException("E_WEB_REQUEST");
         CancellationSignal signal = transfers.get(arg);
         if (signal != null) signal.cancel();
         return Bundle.EMPTY;
@@ -127,8 +143,9 @@ public final class WebProvider extends ContentProvider {
         try {
             if (!"r".equals(mode)) throw new IllegalArgumentException("E_WEB_REQUEST");
             WebSettings settings = settings(uri);
-            WebSettings.Config config = settings.active(required(uri, "account", "[0-9a-f]{64}"));
-            long generation = settings.generation(config);
+            String live = uri.getQueryParameter("live");
+            WebSettings.Config config = settings.active(required(uri, "account", "[0-9a-f]{64}"), live);
+            long generation = settings.generation(config, live);
             List<String> parts = uri.getPathSegments();
             if (parts.size() != 2) throw new IllegalArgumentException("E_WEB_REQUEST");
             boolean thumb = "thumb".equals(parts.get(0));
@@ -175,7 +192,7 @@ public final class WebProvider extends ContentProvider {
                 bytes = settings.network.thumbnail(post, generation, signal);
             } else {
                 Media found;
-                synchronized (media) { found = media.get(settings.site.id + "/" + id + "/" + version); }
+                synchronized (media) { found = media.get(settings.site.id + "/" + generation + "/" + id + "/" + version); }
                 if (found == null || found.generation != generation || !revision.equals(found.post.revision)) {
                     throw new IOException("E_WEB_REOPEN");
                 }

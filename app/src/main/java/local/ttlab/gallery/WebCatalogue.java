@@ -18,10 +18,17 @@ final class WebCatalogue {
         }
     }
 
-    void store(String query, int page, WebSource.Result result) {
+    void store(String query, int page, WebSource.Result result, boolean live) {
         library.db.beginTransaction();
         try {
-            if (page == 0) library.db.execSQL("DELETE FROM web_results WHERE query=?", new Object[]{query});
+            if (page == 0) {
+                if (live) {
+                    library.db.execSQL("DELETE FROM web_results");
+                    library.db.execSQL("DELETE FROM web_queries");
+                } else {
+                    library.db.execSQL("DELETE FROM web_results WHERE query=?", new Object[]{query});
+                }
+            }
             library.rows(result.posts);
             for (int n = 0; n < result.posts.size(); n++) {
                 Item item = result.posts.get(n);

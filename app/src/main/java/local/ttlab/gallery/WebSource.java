@@ -25,13 +25,15 @@ final class WebSource extends Source {
     private final ContentResolver resolver;
     private final android.content.pm.PackageManager packages;
     private final boolean gelbooru;
+    private final String liveId;
     private final ExecutorService cancellations = Executors.newSingleThreadExecutor();
 
-    WebSource(Context context, Vault vault, Library library, String source) {
+    WebSource(Context context, Vault vault, Library library, String source, String liveId) {
         super(context, vault, library, PACKAGE, BRIDGE.getAuthority(), true, "Web");
         resolver = context.getContentResolver();
         packages = context.getPackageManager();
         gelbooru = GELBOORU.equals(source);
+        this.liveId = liveId;
     }
 
     Intent configure() {
@@ -42,7 +44,7 @@ final class WebSource extends Source {
 
     @Override void guard() throws Exception {
         super.guard();
-        if (gelbooru && packages.getPackageInfo(PACKAGE, 0).getLongVersionCode() < 3) {
+        if (gelbooru && packages.getPackageInfo(PACKAGE, 0).getLongVersionCode() < 4) {
             throw new IOException("E_WEB_UPDATE");
         }
     }
@@ -172,16 +174,32 @@ final class WebSource extends Source {
         } finally { cancel.setOnCancelListener(null); }
     }
 
+    void beginLive() throws Exception {
+        guard();
+        android.os.Bundle reply = resolver.call(BRIDGE, "beginGelbooru", liveId, null);
+        if (reply == null || !reply.getBoolean("active")) throw new IOException("E_WEB_DISABLED");
+    }
+
+    void endLive() {
+        try { resolver.call(BRIDGE, "endGelbooru", liveId, null); }
+        catch (RuntimeException ignored) { }
+        cancellations.shutdown();
+    }
+
     private Uri siteUri(Uri target) {
-        return gelbooru ? target.buildUpon().appendQueryParameter("site", "gelbooru").build() : target;
+        if (!gelbooru) return target;
+        Uri.Builder builder = target.buildUpon().appendQueryParameter("site", "gelbooru");
+        if (liveId != null) builder.appendQueryParameter("live", liveId);
+        return builder.build();
     }
 
     static String message(Exception failure) {
         String code = failure.getMessage();
         if (code == null) code = "";
-        if (code.contains("E_WEB_UPDATE")) return "Actualiza Conector Web a la versión 1.2 o posterior para usar Gelbooru.";
+        if (code.contains("E_WEB_UPDATE")) return "Actualiza Conector Web a la versión 1.3 o posterior para usar Gelbooru.";
         if (code.contains("E_WEB_NO_RANGES")) return "El servidor no permite adelantar este video.";
         if (code.contains("E_WEB_LIMIT") || code.contains("E_WEB_BUSY")) return "El sitio limitó las solicitudes. Espera y reintenta.";
+        if (code.contains("E_WEB_LIVE_CLIENT")) return "Vuelve a abrir Gelbooru para renovar la sesión.";
         if (code.contains("E_WEB_NO_STORE")) return "La respuesta del sitio no permite guardar estos datos en caché.";
         if (code.contains("E_WEB_MEDIA_VERSION")) return "El servidor no confirmó la versión del archivo.";
         if (code.contains("E_WEB_ACCESS")) return "El sitio rechazó el acceso. Revisa la autorización.";

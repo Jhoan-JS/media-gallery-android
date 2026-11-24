@@ -15,6 +15,7 @@ final class WebSettings {
     final WebNetwork network;
     private final SecureStore store;
     private Config config;
+    private String liveSession;
 
     static final class Config {
         final String user, key, account;
@@ -72,13 +73,37 @@ final class WebSettings {
 
     synchronized Config config() { return config; }
 
-    synchronized Config active(String account) {
+    synchronized boolean startLive(String token) {
+        if (site != WebSite.GELBOORU || config == null || !config.enabled) return false;
+        if (!token.equals(liveSession)) {
+            network.revoke();
+            liveSession = token;
+        }
+        return true;
+    }
+
+    synchronized boolean endLive(String token) {
+        if (!token.equals(liveSession)) return false;
+        liveSession = null;
+        network.revoke();
+        return true;
+    }
+
+    private void requireLive(String token) {
+        if (site == WebSite.GELBOORU && (token == null || !token.equals(liveSession))) {
+            throw new SecurityException("E_WEB_LIVE_CLIENT");
+        }
+    }
+
+    synchronized Config active(String account, String token) {
+        requireLive(token);
         if (config == null || !config.enabled) throw new SecurityException("E_WEB_DISABLED");
         if (account != null && !config.account.equals(account)) throw new SecurityException("E_WEB_ACCOUNT");
         return config;
     }
 
-    synchronized long generation(Config expected) {
+    synchronized long generation(Config expected, String token) {
+        requireLive(token);
         if (expected != config || !expected.enabled) throw new SecurityException("E_WEB_DISABLED");
         return network.generation();
     }
@@ -102,6 +127,7 @@ final class WebSettings {
         try {
             store.put("settings", bytes);
             config = next;
+            liveSession = null;
         } finally {
             java.util.Arrays.fill(bytes, (byte) 0);
             network.revoke();

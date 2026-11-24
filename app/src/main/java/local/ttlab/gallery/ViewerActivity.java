@@ -447,7 +447,14 @@ public final class ViewerActivity extends SecureActivity {
     }
     @Override void onCovered(){undo.clear();clearScrubPreview();cancelFrame(coverWork);coverWork=null;}
     @Override protected void onPause(){undo.clear();persistPlayback();flushRecentVisits();previewActive=false;cancelRequest();loading=false;releaseVideo();super.onPause();}
-    @Override protected void onSaveInstanceState(Bundle out){persistPlayback();out.putInt("viewer-channel",currentChannel);out.putInt("viewer-id",currentId);out.putBoolean("viewer-play",wantsPlay);if(filter!=null&&filter.stackKey.isEmpty())try{state.preferences.edit().putString("viewer-filter",SavedCollection.encode(filter)).apply();}catch(RuntimeException unavailable){}out.remove("viewer-filter");if(keys!=null)out.putLongArray("viewer-keys",keys);super.onSaveInstanceState(out);}
+    @Override protected void onStop(){
+        if(state!=null&&state.liveId!=null&&!isFinishing()&&!isChangingConfigurations()){
+            State.endWebLive(state);
+            finish();
+        }
+        super.onStop();
+    }
+    @Override protected void onSaveInstanceState(Bundle out){if(state==null||state.liveId!=null){super.onSaveInstanceState(out);return;}persistPlayback();out.putInt("viewer-channel",currentChannel);out.putInt("viewer-id",currentId);out.putBoolean("viewer-play",wantsPlay);if(filter!=null&&filter.stackKey.isEmpty())try{state.preferences.edit().putString("viewer-filter",SavedCollection.encode(filter)).apply();}catch(RuntimeException unavailable){}out.remove("viewer-filter");if(keys!=null)out.putLongArray("viewer-keys",keys);super.onSaveInstanceState(out);}
     @Override protected void onDestroy(){undo.clear();closed=true;cancelRequest();handler.removeCallbacksAndMessages(null);releaseVideo();if(image!=null)image.clear();frames.shutdownNow();worker.shutdownNow();super.onDestroy();}
 
     private static final class ZoomImage extends ImageView {
