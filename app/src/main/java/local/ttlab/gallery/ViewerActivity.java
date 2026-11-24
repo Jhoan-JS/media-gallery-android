@@ -39,6 +39,7 @@ public final class ViewerActivity extends SecureActivity {
     private float playbackSpeed=1,videoVolume=1,touchX,touchY,touchLevel;private boolean boosted;private int levelSide;private long loadStarted,readyMillis=-1,frameMillis=-1;
     private PlaybackWatch watch=new PlaybackWatch();
     private volatile Item item;private VideoPlayer player;private MediaDataSource video;private boolean loading,loadFailed,prepared,surfaceReady;private volatile boolean closed;
+    private android.os.CancellationSignal webPrepare;
     private Future<?> lookupWork,mediaWork,prepareWork,neighborWork,thumbnailWork;private volatile int thumbnailEpoch,epoch;private volatile boolean previewActive;private Runnable loadTimeout;
     private final Runnable tick=new Runnable(){public void run(){if(player!=null&&prepared&&!awaitingSeek){try{int position=player.getCurrentPosition();if(!dragging){seek.setProgress(position);elapsed(position);}observePlayback(position,player.isPlaying()&&!buffering&&!dragging);long now=android.os.SystemClock.elapsedRealtime();if(now-lastCheckpoint>=5000){persistPlayback();lastCheckpoint=now;}}catch(IllegalStateException ignored){}}if(!closed&&previewActive)handler.postDelayed(this,500);}};
     private final Runnable hideControls=()->{if(player!=null&&prepared&&!dragging&&previewActive&&!touchExploration())try{if(player.isPlaying())setControlsVisible(false);}catch(IllegalStateException ignored){}};
@@ -118,7 +119,7 @@ public final class ViewerActivity extends SecureActivity {
         }
         java.util.List<String> options=new java.util.ArrayList<>(java.util.Arrays.asList(
             favoriteValue?"Quitar de Favoritos":"Añadir a Favoritos",laterValue?"Quitar de Ver después":"Ver después",
-            UiSource.isLocal(this)?"Eliminar copia importada":"Guardar sin conexión","Organizar",opened.video()?"Reproducción":"Ajustar imagen","Información"));
+            SourceId.web(state.key)?"Etiquetas del sitio":UiSource.isLocal(this)?"Eliminar copia importada":"Guardar sin conexión","Organizar",opened.video()?"Reproducción":"Ajustar imagen","Información"));
         if(loadFailed)options.add(0,"Reintentar");
         boolean retryShown=loadFailed;
         GalleryUi.menu(this,"Archivo",options.toArray(new String[0]),index->{
@@ -127,12 +128,26 @@ public final class ViewerActivity extends SecureActivity {
             switch(index-(retryShown?1:0)){
                 case 0:toggleFlag("favorite");break;
                 case 1:toggleFlag("later");break;
-                case 2:if(UiSource.isLocal(this))confirmRemoveCopy(opened);else DownloadService.start(this,state.key,opened);break;
+                case 2:if(SourceId.web(state.key))showWebTags(opened);else if(UiSource.isLocal(this))confirmRemoveCopy(opened);else DownloadService.start(this,state.key,opened);break;
                 case 3:organize(opened);break;
                 case 4:if(opened.video())playbackOptions(opened);else image.fit();break;
                 case 5:showInformation(opened);break;
                 default:break;
             }
+        });
+    }
+    private void showWebTags(Item opened){
+        final String[] missing={"Sin etiquetas disponibles"};
+        state.database.execute(()->{
+            String saved=state.webCatalogue.tags(opened.id);
+            String[] tags=saved.trim().isEmpty()?missing:saved.split("\\s+");
+            if(tags.length>80)tags=java.util.Arrays.copyOf(tags,80);
+            final String[] options=tags;
+            runOnUiThread(()->{if(item==opened&&previewActive&&state.unlocked)GalleryUi.menu(this,"Etiquetas del sitio",options,n->{
+                if(options==missing)return;
+                setResult(RESULT_OK,new Intent().putExtra("web-tag",options[n]));
+                finish();
+            });});
         });
     }
     private void organize(Item opened){
@@ -328,15 +343,18 @@ public final class ViewerActivity extends SecureActivity {
         if(closed||!previewActive||state==null||!state.unlocked)return;
         undo.clear();persistPlayback();cancelRequest();releaseVideo();loadStarted=android.os.SystemClock.elapsedRealtime();readyMillis=frameMillis=-1;final int generation=epoch;final int channel=currentChannel,id=currentId;final State origin=state;
         item=null;flagEdits.clear();before=after=null;openedQueued=false;viewedQueued=false;watch=new PlaybackWatch();loading=true;loadFailed=false;awaitingSeek=false;image.clear();surface.setVisibility(View.GONE);image.setVisibility(View.VISIBLE);gestureLayer.setVisibility(View.GONE);centerControls.setVisibility(View.GONE);transport.setVisibility(View.GONE);progress.setVisibility(View.VISIBLE);skipFeedback.setVisibility(View.GONE);title.setText("Archivo");status.setMaxLines(2);status.setText("Cargando archivo…");status.setVisibility(View.VISIBLE);showControls();
-        loadTimeout=()->{if(!closed&&epoch==generation&&loading){cancel(mediaWork);cancel(prepareWork);showError();}};handler.postDelayed(loadTimeout,30000);
-        lookupWork=origin.database.submit(()->{try{
-            Item found=origin.library.get(channel,id);
+        loadTimeout=()->{if(!closed&&epoch==generation&&loading){if(webPrepare!=null)webPrepare.cancel();cancel(mediaWork);cancel(prepareWork);showError();}};handler.postDelayed(loadTimeout,30000);
+        final android.os.CancellationSignal remote=SourceId.web(origin.key)?new android.os.CancellationSignal():null;
+        webPrepare=remote;
+        lookupWork=(remote==null?origin.database:worker).submit(()->{try{
+            Item row=origin.library.get(channel,id);
+            Item found=remote==null||row==null?row:((WebSource)origin.source).prepare(row,remote);
             if(!filter.stackKey.isEmpty()&&(found==null||!filter.stackKey.equals(found.contentKey)||!filter.stackMime.equals(found.mime)||filter.stackSize!=found.size)){
                 runOnUiThread(()->{if(!closed&&previewActive&&origin.unlocked&&epoch==generation){showError();status.setText("El archivo cambió y ya no pertenece a esta pila. Vuelve a la lista para actualizarla.");}});return;
             }
             if(found==null)throw new java.io.IOException("Archivo no disponible");Library.Flags flags=origin.library.flags(found);float speed;try{speed=PlayerControls.speed(Float.parseFloat(origin.library.setting("player-speed","1")));}catch(NumberFormatException invalid){speed=1;}final float selectedSpeed=speed;boolean viewed=found.video()&&origin.library.viewed(found),offline=found.video()&&origin.library.offline(found);
             runOnUiThread(()->{if(closed||!previewActive||!origin.unlocked||epoch!=generation)return;item=found;savedVideo=offline;playbackSpeed=selectedSpeed;favoriteValue=flags.favorite;laterValue=flags.later;archivedValue=flags.archived;resumePosition=PlaybackProgress.resume(flags.position,flags.duration,flags.completed);playbackCompleted=flags.completed;viewedQueued=viewed;title.setText(found.label());status.setText(metadata());resolveNeighbors();if(found.video()){image.setVisibility(View.GONE);surface.setVisibility(View.VISIBLE);gestureLayer.setVisibility(View.VISIBLE);centerControls.setVisibility(View.VISIBLE);transport.setVisibility(View.VISIBLE);seek.setVisibility(View.VISIBLE);startVideo();}else{fitImage();decodeImage(found,generation,origin);}});
-        }catch(Exception error){runOnUiThread(()->{if(!closed&&previewActive&&epoch==generation)showError();});}});
+        }catch(Exception error){runOnUiThread(()->{if(!closed&&previewActive&&epoch==generation){showError();if(remote!=null)status.setText(WebSource.message(error));}});}});
     }
     private void decodeImage(Item opened,int generation,State origin){
         mediaWork=worker.submit(()->{try{
@@ -413,7 +431,7 @@ public final class ViewerActivity extends SecureActivity {
     private void showError(){if(closed)return;Throwable failure=video instanceof BufferedMediaSource?((BufferedMediaSource)video).failure():null;persistPlayback();cancelRequest();releaseVideo();loading=false;loadFailed=true;progress.setVisibility(View.GONE);status.setMaxLines(4);status.setVisibility(View.VISIBLE);status.setText(ConnectionMessage.describe(failure,Profiles.owner(),state.key));showControls();handler.removeCallbacks(hideControls);}
     private static void cancel(Future<?> work){if(work!=null)work.cancel(true);}
     private void clearLoadTimeout(){if(loadTimeout!=null)handler.removeCallbacks(loadTimeout);loadTimeout=null;}
-    private void cancelRequest(){stopBoost();epoch++;cancelFrame(coverWork);coverWork=null;cancel(lookupWork);cancel(mediaWork);cancel(prepareWork);cancel(neighborWork);clearLoadTimeout();cancelVideoThumbnail();handler.removeCallbacks(hideSkipFeedback);}
+    private void cancelRequest(){stopBoost();epoch++;if(webPrepare!=null){webPrepare.cancel();webPrepare=null;}cancelFrame(coverWork);coverWork=null;cancel(lookupWork);cancel(mediaWork);cancel(prepareWork);cancel(neighborWork);clearLoadTimeout();cancelVideoThumbnail();handler.removeCallbacks(hideSkipFeedback);}
     private void releaseVideo(){clearScrubPreview();boosted=false;levelSide=0;if(surface!=null){surface.setKeepScreenOn(false);surface.setScaleX(1);surface.setScaleY(1);surface.setTranslationX(0);surface.setTranslationY(0);}videoZoom=1;cancel(prepareWork);cancelVideoThumbnail();watch.resetSample();buffering=false;dragging=false;VideoPlayer old=player;MediaDataSource data=video;player=null;video=null;prepared=false;awaitingSeek=false;if(play!=null)play.setEnabled(false);handler.removeCallbacks(tick);handler.removeCallbacks(hideControls);if(data instanceof BufferedMediaSource)try{data.close();}catch(Exception ignored){}if(old!=null)old.close();if(data!=null&&!(data instanceof BufferedMediaSource))new Thread(()->{try{data.close();}catch(Exception ignored){}},"CloseGalleryVideoSource").start();}
     @Override public boolean dispatchKeyEvent(KeyEvent event){
         if(event.getAction()==KeyEvent.ACTION_DOWN&&previewActive&&state!=null&&state.unlocked&&getWindow().getDecorView().hasWindowFocus()){

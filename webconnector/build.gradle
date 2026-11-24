@@ -1,0 +1,26 @@
+plugins { id 'com.android.application' }
+apply from: rootProject.file('signing.gradle')
+
+android {
+    namespace 'local.ttlab.web'
+    compileSdk 36
+    defaultConfig {
+        applicationId 'local.ttlab.web'
+        minSdk 31
+        targetSdk 36
+        versionCode 1
+        versionName '1.0'
+    }
+    buildFeatures { buildConfig true }
+    buildTypes {
+        debug {
+            buildConfigField 'boolean', 'WEB_FIXTURE', project.hasProperty('webFixture') ? 'true' : 'false'
+        }
+    }
+    if (project.hasProperty('webFixture')) sourceSets.debug.assets.srcDir(rootProject.file('.qa/web-fixture'))
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+}
+dependencies { testImplementation 'junit:junit:4.13.2' }

@@ -112,7 +112,7 @@ final class Library {
         }db.setTransactionSuccessful();}finally{db.endTransaction();}
     }
     List<Source.Channel> channels(){List<Source.Channel> out=new ArrayList<>();try(Cursor c=db.rawQuery("SELECT id,title,remote_key FROM channels ORDER BY title",(String[])null)){while(c.moveToNext())out.add(new Source.Channel(c.getInt(0),c.getString(1),c.getString(2)));}return out;}
-    private void rows(List<Item> items){for(Item i:items)db.execSQL("INSERT INTO media(id,channel,name,mime,size,date,width,height,duration,revision,content_key) VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(channel,id) DO UPDATE SET offline=CASE WHEN media.revision=excluded.revision THEN media.offline ELSE 0 END,name=excluded.name,mime=excluded.mime,size=excluded.size,date=excluded.date,width=excluded.width,height=excluded.height,duration=excluded.duration,revision=excluded.revision,content_key=excluded.content_key",
+    void rows(List<Item> items){for(Item i:items)db.execSQL("INSERT INTO media(id,channel,name,mime,size,date,width,height,duration,revision,content_key) VALUES(?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(channel,id) DO UPDATE SET offline=CASE WHEN media.revision=excluded.revision THEN media.offline ELSE 0 END,name=excluded.name,mime=excluded.mime,size=excluded.size,date=excluded.date,width=excluded.width,height=excluded.height,duration=excluded.duration,revision=excluded.revision,content_key=excluded.content_key",
         new Object[]{i.id,i.channel,i.name,i.mime,i.size,i.date,i.width,i.height,i.duration,i.revision,i.contentKey});}
     void put(List<Item> items){db.beginTransaction();try{rows(items);db.setTransactionSuccessful();}finally{db.endTransaction();}}
     int cursor(int channel){try(Cursor c=db.rawQuery("SELECT cursor,complete FROM channels WHERE id=?",new String[]{""+channel})){return c.moveToFirst()&&c.getInt(1)==0?c.getInt(0):0;}}
@@ -151,6 +151,7 @@ final class Library {
     private static final String STATE_COLUMNS=","+stateValue("favorite")+","+stateValue("later")+","+stateValue("position_ms")+","+stateValue("duration_ms")+","+stateValue("completed")+","+stateValue("archived");
     private String where(MediaFilter f,List<String> args){
         f.check();String sql=" WHERE 1=1";
+        if(f.webQuery!=null){sql+=" AND EXISTS(SELECT 1 FROM web_results w WHERE w.id=media.id AND w.query=?)";args.add(f.webQuery);}
         if(f.archive<2)sql+=" AND "+(f.archive==0?"NOT ":"")+"EXISTS(SELECT 1 FROM media_state s WHERE s.channel=media.channel AND s.id=media.id AND s.revision=media.revision AND s.archived=1)";
         if(f.recent)sql+=" AND EXISTS(SELECT 1 FROM recent_media r WHERE r.channel=media.channel AND r.id=media.id AND r.revision=media.revision)";
         if(f.albumId>0){sql+=" AND EXISTS(SELECT 1 FROM personal_members p JOIN personal_groups g ON g.group_id=p.group_id WHERE g.kind=0 AND p.group_id=? AND p.channel=media.channel AND p.id=media.id AND p.revision=media.revision)";args.add(""+f.albumId);}
