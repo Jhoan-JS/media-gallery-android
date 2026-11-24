@@ -1,7 +1,7 @@
 # Repository scope
 
 This repository contains gallery **2.18** (`versionCode 20`) and Telegram
-connector **1.1** (`versionCode 2`).
+connector **1.2** (`versionCode 3`).
 
 | Path | Contents |
 | --- | --- |

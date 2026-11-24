@@ -72,7 +72,9 @@ final class ConnectorDb {
                 db.execSQL("INSERT INTO peers(account,kind,remote_id,access_hash,title) VALUES(?,?,?,?,?) ON CONFLICT(account,kind,remote_id) DO UPDATE SET access_hash=excluded.access_hash,title=excluded.title",new Object[]{account,kind,id,hash,title});
                 try(Cursor c=db.rawQuery("SELECT local_id,selected FROM peers WHERE account=? AND kind=? AND remote_id=?",new String[]{account,kind,id})) {
                     if(!c.moveToFirst()||c.getLong(0)>Integer.MAX_VALUE)throw new IllegalStateException("E_TELEGRAM_PEER_LIMIT");
-                    visible.put(new JSONObject().put("id",c.getInt(0)).put("title",title).put("kind",kind).put("selected",c.getInt(1)!=0));
+                    visible.put(new JSONObject().put("id",c.getInt(0)).put("title",title).put("kind",kind)
+                            .put("selected",c.getInt(1)!=0).put("supergroup",chat.optBoolean("supergroup"))
+                            .put("unavailable",chat.optBoolean("unavailable")));
                 }
             }
             db.setTransactionSuccessful();
