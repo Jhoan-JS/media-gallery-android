@@ -1,0 +1,16 @@
+<resources>
+    <style name="ConnectorTheme" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#BDC9A4</item>
+        <item name="android:windowBackground">#141715</item>
+        <item name="android:colorBackground">#141715</item>
+        <item name="android:textColorPrimary">#E8ECE5</item>
+        <item name="android:textColorSecondary">#ADB5AA</item>
+        <item name="android:statusBarColor">#141715</item>
+        <item name="android:navigationBarColor">#141715</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowDisablePreview">true</item>
+    </style>
+</resources>

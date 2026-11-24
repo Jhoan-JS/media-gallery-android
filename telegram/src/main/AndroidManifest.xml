@@ -1,0 +1,16 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.HIDE_OVERLAY_WINDOWS" />
+    <uses-permission android:name="local.ttlab.permission.AUTHENTICATE" />
+    <permission android:name="local.ttlab.permission.TELEGRAM" android:protectionLevel="signature" />
+    <queries><package android:name="${galleryPackage}" /></queries>
+    <application android:label="${connectorLabel}" android:theme="@style/ConnectorTheme" android:allowBackup="false" android:fullBackupContent="false" android:usesCleartextTraffic="false" android:supportsRtl="true">
+        <activity android:name=".MainActivity" android:exported="true" android:windowSoftInputMode="adjustResize">
+            <intent-filter><action android:name="android.intent.action.MAIN" /><category android:name="android.intent.category.LAUNCHER" /></intent-filter>
+        </activity>
+        <activity android:name=".AuthorizeActivity" android:exported="true" android:permission="local.ttlab.permission.TELEGRAM" android:windowSoftInputMode="adjustResize">
+            <intent-filter><action android:name="local.ttlab.telegram.AUTHORIZE" /><category android:name="android.intent.category.DEFAULT" /></intent-filter>
+        </activity>
+        <provider android:name=".TelegramProvider" android:authorities="${connectorAuthority}" android:exported="true" android:permission="local.ttlab.permission.TELEGRAM" android:grantUriPermissions="false" />
+    </application>
+</manifest>
