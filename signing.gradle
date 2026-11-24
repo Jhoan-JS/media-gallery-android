@@ -1,0 +1,12 @@
+// Dedicated, disposable debug identity shared by both apps in this checkout.
+// Release builds are unsigned. Production signing is configured outside this snapshot.
+android {
+    signingConfigs {
+        debug {
+            storeFile rootProject.file('.qa/debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+    }
+}

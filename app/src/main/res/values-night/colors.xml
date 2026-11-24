@@ -1,0 +1,6 @@
+<resources>
+<color name="gallery_surface">#141715</color><color name="gallery_surface_container">#1D221E</color><color name="gallery_container">#1D221E</color>
+<color name="gallery_foreground">#E8ECE5</color><color name="gallery_muted">#ADB5AA</color><color name="gallery_primary">#BDC9A4</color>
+<color name="gallery_on_primary">#192012</color><color name="gallery_onprimary">#192012</color><color name="gallery_primary_container">#303A29</color>
+<color name="gallery_outline">#353C35</color><color name="gallery_error">#EAB4AC</color><color name="gallery_ripple">#24BDC9A4</color>
+</resources>

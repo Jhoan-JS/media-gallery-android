@@ -1,0 +1,33 @@
+plugins { id 'com.android.application' }
+apply from: rootProject.file('signing.gradle')
+android {
+    namespace 'local.ttlab.gallery'
+    compileSdk 36
+    defaultConfig {
+        applicationId (project.findProperty('qaApplicationId') ?: 'local.ttlab.gallery').toString()
+        manifestPlaceholders = [galleryLabel: project.hasProperty('qaApplicationId') ? 'Tato Lab · Verificación' : 'Tato Galería']
+        manifestPlaceholders.fixtureAuthority = (project.findProperty('qaApplicationId') ?: 'local.ttlab.gallery').toString()+'.fixture.telegram'
+        manifestPlaceholders.telegramPackage = (project.findProperty('qaTelegramApplicationId') ?: 'local.ttlab.telegram').toString()
+        manifestPlaceholders.telegramAuthority = (project.findProperty('qaTelegramAuthority') ?: (project.findProperty('qaTelegramApplicationId') ?: 'local.ttlab.telegram').toString()+'.bridge').toString()
+        minSdk 31
+        targetSdk 36
+        versionCode 20
+        versionName '2.18'
+        buildConfigField 'String','TELEGRAM_PACKAGE','"'+(project.findProperty('qaTelegramApplicationId') ?: 'local.ttlab.telegram').toString()+'"'
+        buildConfigField 'String','TELEGRAM_AUTHORITY','"'+(project.findProperty('qaTelegramAuthority') ?: (project.findProperty('qaTelegramApplicationId') ?: 'local.ttlab.telegram').toString()+'.bridge').toString()+'"'
+        ndk { abiFilters (project.findProperty('uiQaAbi') ?: 'arm64-v8a').toString() }
+        testInstrumentationRunner 'local.ttlab.gallery.GalleryChecks'
+        testApplicationId ((project.findProperty('qaApplicationId') ?: 'local.ttlab.gallery').toString()+'.test')
+    }
+    buildTypes { release { minifyEnabled false } }
+    buildFeatures { buildConfig true }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_11; targetCompatibility JavaVersion.VERSION_11 }
+    androidResources { noCompress += ['tflite','onnx','f32'] }
+}
+dependencies {
+    implementation 'net.zetetic:sqlcipher-android:4.19.1@aar'
+    implementation 'androidx.sqlite:sqlite:2.2.0'
+    implementation 'com.microsoft.onnxruntime:onnxruntime-android:1.28.0'
+    implementation 'androidx.media3:media3-exoplayer:1.11.1'
+    testImplementation 'junit:junit:4.13.2'
+}

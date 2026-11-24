@@ -1,0 +1,12 @@
+<resources>
+<style name="GalleryTheme" parent="android:style/Theme.Material.NoActionBar">
+<item name="android:fontFamily">sans</item><item name="android:colorAccent">@color/gallery_primary</item>
+<item name="android:colorControlNormal">@color/gallery_muted</item><item name="android:textColorPrimary">@color/gallery_foreground</item><item name="android:textColorSecondary">@color/gallery_muted</item><item name="android:textColorHint">@color/gallery_muted</item>
+<item name="android:windowLightStatusBar">false</item><item name="android:windowLightNavigationBar">false</item><item name="android:navigationBarColor">@color/gallery_surface</item><item name="android:statusBarColor">@color/gallery_surface</item><item name="android:windowBackground">@color/gallery_surface</item><item name="android:windowActionModeOverlay">true</item>
+<item name="android:windowSoftInputMode">stateAlwaysHidden|adjustResize</item><item name="android:alertDialogTheme">@style/GalleryDialogTheme</item>
+</style>
+<style name="GalleryLibraryTheme" parent="GalleryTheme"/>
+<style name="GalleryDialogTheme" parent="android:style/Theme.Material.Dialog.Alert">
+<item name="android:fontFamily">sans</item><item name="android:colorAccent">@color/gallery_primary</item><item name="android:textColorPrimary">@color/gallery_foreground</item><item name="android:textColorSecondary">@color/gallery_muted</item><item name="android:colorBackground">@color/gallery_surface_container</item><item name="android:windowBackground">@color/gallery_surface_container</item>
+</style>
+</resources>
