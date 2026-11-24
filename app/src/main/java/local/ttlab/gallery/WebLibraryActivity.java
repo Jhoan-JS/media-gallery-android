@@ -284,7 +284,7 @@ public final class WebLibraryActivity extends SecureActivity {
                     closeGrid();
                     adapter = new PagedAdapter(this, state, filter, count);
                     grid.setAdapter(adapter);
-                    if (stored != null && count > 0) grid.setSelectionFromTop(Math.min(stored.position, count - 1), stored.top);
+                    if (stored != null && count > 0) GalleryUi.restoreGrid(grid, stored.position, stored.top);
                     nextPage = next;
                     moreAllowed = next > 0;
                     section.setText(SECTIONS[collection] + " ▾");
