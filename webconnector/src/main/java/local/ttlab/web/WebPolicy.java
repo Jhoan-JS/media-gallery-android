@@ -51,7 +51,8 @@ final class WebPolicy {
             }
         }
         if (!positive) throw new IllegalArgumentException("E_WEB_TAGS");
-        return String.join(" ", words) + " rating:" + site.rating;
+        String query = String.join(" ", words);
+        return site.requiredRatingTag.isEmpty() ? query : query + " " + site.requiredRatingTag;
     }
 
     static String mime(URI uri) {

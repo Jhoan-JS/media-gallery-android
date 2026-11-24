@@ -153,7 +153,9 @@ final class WebNetwork {
             post = known.get(id);
         }
         if (post == null) {
-            JSONArray rows = request(config, generation, "id=" + id + "&limit=1&tags=" + encode("rating:" + site.rating), cancel);
+            String parameters = "id=" + id + "&limit=1";
+            if (!site.requiredRatingTag.isEmpty()) parameters += "&tags=" + encode(site.requiredRatingTag);
+            JSONArray rows = request(config, generation, parameters, cancel);
             if (rows.length() != 1) throw new IOException("E_WEB_MISSING");
             post = new Post(site, rows.getJSONObject(0));
             if (post.id != id) throw new IOException("E_WEB_MISSING");
@@ -328,7 +330,7 @@ final class WebNetwork {
         connection.setConnectTimeout(7000);
         connection.setReadTimeout(9000);
         connection.setRequestProperty("Accept-Encoding", "identity");
-        connection.setRequestProperty("User-Agent", "MediaGallery-Android/2.20 (optional web connector)");
+        connection.setRequestProperty("User-Agent", "MediaGallery-Android/2.21 (optional web connector)");
         synchronized (this) {
             current(generation);
             if (active.size() >= 6) throw new IOException("E_WEB_BUSY");

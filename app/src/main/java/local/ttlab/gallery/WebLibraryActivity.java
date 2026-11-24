@@ -288,7 +288,9 @@ public final class WebLibraryActivity extends SecureActivity {
                     typeButton.setText(TYPES[type] + " ▾");
                     if (!message.isEmpty()) status.setText(message);
                     else if (count > 0) status.setText(count + " en esta vista");
-                    else if (query.isEmpty() && collection == 0) status.setText("Busca por etiquetas. Solo se muestran resultados clasificados como seguros.");
+                    else if (query.isEmpty() && collection == 0) status.setText(WebSource.GELBOORU.equals(state.key)
+                            ? "Busca por etiquetas."
+                            : "Busca por etiquetas. Solo se muestran resultados clasificados como seguros.");
                     else status.setText(moreAllowed ? "Sin coincidencias en lo cargado. Puedes cargar más."
                             : "Esta vista no tiene resultados guardados.");
                     controls();

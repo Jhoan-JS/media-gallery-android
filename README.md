@@ -41,8 +41,8 @@ primary user; other secondary user IDs are not supported by this version.
 
 ## Optional web sources
 
-Gallery 2.20 and Web Connector 1.1 add Gelbooru to the source picker alongside
-Rule34.xxx. Each site stays disabled until configured on the device.
+Gallery 2.21 and Web Connector 1.2 support Gelbooru and Rule34.xxx in the source
+picker. Each site stays disabled until configured on the device.
 The [connector guide](webconnector/README.md) covers setup, privacy and limits.
 
 ## What works without an account

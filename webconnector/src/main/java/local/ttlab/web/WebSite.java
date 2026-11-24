@@ -7,16 +7,16 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 enum WebSite {
-    RULE34("rule34", "Rule34.xxx", "safe", "web", "https://api.rule34.xxx/index.php"),
-    GELBOORU("gelbooru", "Gelbooru", "general", "web-gelbooru", "https://gelbooru.com/index.php");
+    RULE34("rule34", "Rule34.xxx", "rating:safe", "web", "https://api.rule34.xxx/index.php"),
+    GELBOORU("gelbooru", "Gelbooru", "", "web-gelbooru", "https://gelbooru.com/index.php");
 
-    final String id, label, rating, directory;
+    final String id, label, requiredRatingTag, directory;
     final URI api;
 
-    WebSite(String id, String label, String rating, String directory, String api) {
+    WebSite(String id, String label, String requiredRatingTag, String directory, String api) {
         this.id = id;
         this.label = label;
-        this.rating = rating;
+        this.requiredRatingTag = requiredRatingTag;
         this.directory = directory;
         this.api = URI.create(api);
     }
@@ -28,7 +28,7 @@ enum WebSite {
     }
 
     boolean acceptsRating(String value) {
-        return rating.equals(value) || (this == RULE34 ? "s".equals(value) : "g".equals(value));
+        return this == GELBOORU || "safe".equals(value) || "s".equals(value);
     }
 
     JSONArray posts(String payload) throws IOException, JSONException {

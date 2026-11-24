@@ -14,7 +14,7 @@ public class WebPolicyTest {
         }
     }
 
-    @Test public void isolatesGelbooruMediaAndAcceptsOnlyGeneralLabels() {
+    @Test public void isolatesMediaHostsAndRespectsEachSitesRatingPolicy() {
         assertEquals("video/webm", WebPolicy.mime(WebPolicy.media(WebSite.GELBOORU,
                 "https://img3.gelbooru.com/images/aa/bb/example.webm")));
         assertThrows(IllegalArgumentException.class, () -> WebPolicy.media(WebSite.GELBOORU,
@@ -25,10 +25,11 @@ public class WebPolicyTest {
                 "https://img3.gelbooru.com.evil.example/images/example.mp4"));
         assertThrows(IllegalArgumentException.class, () -> WebPolicy.media(WebSite.GELBOORU,
                 "https://img3.gelbooru.com/index.php"));
-        assertEquals("blue_sky rating:general", WebPolicy.query(WebSite.GELBOORU, "blue_sky"));
-        assertTrue(WebSite.GELBOORU.acceptsRating("general"));
-        assertTrue(WebSite.GELBOORU.acceptsRating("g"));
-        assertFalse(WebSite.GELBOORU.acceptsRating("sensitive"));
+        assertEquals("blue_sky", WebPolicy.query(WebSite.GELBOORU, "blue_sky"));
+        for (String rating : new String[]{"general", "sensitive", "questionable", "explicit", ""}) {
+            assertTrue(WebSite.GELBOORU.acceptsRating(rating));
+        }
+        assertFalse(WebSite.RULE34.acceptsRating("explicit"));
         assertTrue(WebSite.RULE34.acceptsRating("safe"));
         assertFalse(WebSite.RULE34.acceptsRating("general"));
     }

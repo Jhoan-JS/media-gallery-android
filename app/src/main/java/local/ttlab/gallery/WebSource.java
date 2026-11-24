@@ -42,7 +42,7 @@ final class WebSource extends Source {
 
     @Override void guard() throws Exception {
         super.guard();
-        if (gelbooru && packages.getPackageInfo(PACKAGE, 0).getLongVersionCode() < 2) {
+        if (gelbooru && packages.getPackageInfo(PACKAGE, 0).getLongVersionCode() < 3) {
             throw new IOException("E_WEB_UPDATE");
         }
     }
@@ -179,7 +179,7 @@ final class WebSource extends Source {
     static String message(Exception failure) {
         String code = failure.getMessage();
         if (code == null) code = "";
-        if (code.contains("E_WEB_UPDATE")) return "Actualiza Conector Web a la versión 1.1 o posterior para usar Gelbooru.";
+        if (code.contains("E_WEB_UPDATE")) return "Actualiza Conector Web a la versión 1.2 o posterior para usar Gelbooru.";
         if (code.contains("E_WEB_NO_RANGES")) return "El servidor no permite adelantar este video.";
         if (code.contains("E_WEB_LIMIT") || code.contains("E_WEB_BUSY")) return "El sitio limitó las solicitudes. Espera y reintenta.";
         if (code.contains("E_WEB_NO_STORE")) return "La respuesta del sitio no permite guardar estos datos en caché.";

@@ -37,7 +37,10 @@ public final class SettingsActivity extends Activity {
         title.setAccessibilityHeading(true);
         layout.addView(title);
         TextView notice = new TextView(this);
-        notice.setText("Fuente opcional para mayores de edad. Solo aparecen publicaciones que el sitio clasifica como seguras. "
+        String ratings = site == WebSite.GELBOORU
+                ? "Se incluyen todas las clasificaciones que devuelve Gelbooru. "
+                : "Solo aparecen publicaciones que el sitio clasifica como seguras. ";
+        notice.setText("Fuente opcional para mayores de edad. " + ratings
                 + "El sitio recibe tu IP, tus búsquedas y tus credenciales de API. La galería guarda su biblioteca web por separado.");
         layout.addView(notice);
         TextView status = new TextView(this);

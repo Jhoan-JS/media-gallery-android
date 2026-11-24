@@ -1,6 +1,6 @@
 # Optional Web Connector
 
-Gallery 2.20 and Web Connector 1.1 support Rule34.xxx and Gelbooru. Install both
+Gallery 2.21 and Web Connector 1.2 support Rule34.xxx and Gelbooru. Install both
 APK files in the same Android user with the same signing certificate. Android 12
 or later is required. Telegram Connector 1.1 and the local Tato interface use
 their existing protocols.
@@ -15,9 +15,10 @@ their existing protocols.
 4. Tap a tile to open the existing viewer. **Etiquetas del sitio** starts a
    search for the selected tag. Use the source picker to leave and return.
 
-Each web source is off by default. Gelbooru shows posts rated **General** and
-Rule34.xxx shows posts rated **Safe**. Ratings come from each site. Searches go
-to the selected site and media requests go to its accepted CDN hosts. Each
+Each web source is off by default. Gelbooru includes every rating returned
+by its API. Gelbooru controls what the API returns for the account. Rule34.xxx
+shows posts rated **Safe**. Searches go to the selected site and media requests
+go to its accepted CDN hosts. Each
 site has its own encrypted searches, position, favorites, history, metadata
 and bounded temporary cache. **Revocar y apagar** removes the selected site's
 API key and stops its requests. The last catalog and local marks are retained

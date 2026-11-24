@@ -80,10 +80,14 @@ final class VariantTransport {
             try {
                 boolean gelbooru = "gelbooru.com".equals(uri.getHost());
                 String expectedTag = gelbooru ? "fixture_gelbooru" : "fixture_gallery";
-                String expectedRating = gelbooru ? "rating:general" : "rating:safe";
-                if (tags == null || !tags.endsWith(expectedRating)
-                        || (gelbooru && !"gel_fixture_key".equals(target.getQueryParameter("api_key")))) {
-                    throw new IOException("Fixture request did not match its site");
+                if (gelbooru) {
+                    if ((id == null && (tags == null || tags.contains("rating:")))
+                            || (id != null && tags != null)
+                            || !"gel_fixture_key".equals(target.getQueryParameter("api_key"))) {
+                        throw new IOException("Unexpected Gelbooru fixture parameters");
+                    }
+                } else if (tags == null || !tags.endsWith("rating:safe")) {
+                    throw new IOException("Missing Rule34 fixture rating");
                 }
                 JSONArray rows = new JSONArray();
                 if (id != null) rows.put(row(Integer.parseInt(id), gelbooru));
@@ -102,7 +106,8 @@ final class VariantTransport {
 
         private static JSONObject row(int id, boolean gelbooru) throws Exception {
             String origin = gelbooru ? "https://img3.gelbooru.com/images/" : "https://api-cdn.rule34.xxx/test/";
-            String rating = gelbooru ? (id == 99 ? "sensitive" : "general") : "safe";
+            String[] labels = {"general", "sensitive", "questionable", "explicit"};
+            String rating = gelbooru ? labels[(100 - id) & 3] : "safe";
             String tags = gelbooru ? "fixture_gelbooru blue_sky" : "fixture_gallery blue_sky";
             return new JSONObject().put("id", id).put("rating", rating).put("change", 1780000000 + id)
                     .put("tags", tags).put("width", 640).put("height", 360)
