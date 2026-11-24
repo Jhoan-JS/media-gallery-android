@@ -1,27 +1,57 @@
-# Protección de los datos
+# Privacy and data protection
 
-El catálogo usa SQLCipher. Los archivos de medios se almacenan en fragmentos
-cifrados mediante AES-GCM. Android Keystore mantiene las claves de dispositivo.
-Las autorizaciones locales se vinculan a la firma, el paquete, el usuario
-Android y la identidad opaca de la cuenta.
+## Storage and unlocking
 
-La reanudación automática de tareas requiere que el proceso pueda acceder a la
-clave de dispositivo. El PIN y la biometría protegen el acceso a la interfaz.
-El PIN no se usa para derivar la clave con que se guarda el catálogo.
-La instalación necesita un sistema Android confiable y su bloqueo de pantalla.
+The catalog uses SQLCipher. Media is stored in AES-GCM encrypted chunks,
+with device keys held by Android Keystore. Local grants are bound to the
+calling signature, package, Android user, and an opaque account identity.
 
-El formato de respaldo usa PBKDF2-HMAC-SHA256 con 210000 iteraciones y sal
-aleatoria, seguido de cifrado autenticado AES-GCM. Los registros del respaldo
-incluyen organización, portadas seleccionadas, carpetas y chats fijados.
-La restauración valida la estructura y vuelve a cifrar los datos para el
-dispositivo de destino. Las claves no exportables de Android Keystore se recrean
-en ese dispositivo. El conector se vuelve a autorizar tras la migración.
+Automatic task recovery requires the process to access its device key after
+a restart. The PIN and optional biometrics guard the interface. The PIN is not
+used to derive the catalog encryption key. This design depends on a trusted
+Android OS and its screen lock.
 
-Las dependencias y modelos se obtienen en la máquina de compilación.
-Las imágenes y sus descripciones se procesan dentro del teléfono mediante ONNX Runtime.
-La galería no dispone del permiso INTERNET. El conector Telegram usa la red para
-las operaciones que el usuario solicita a Telegram.
+Private screens use `FLAG_SECURE`, and Android app backups are disabled.
+Private storage, permissions, and screenshot restrictions reduce exposure to
+other apps; they do not protect against a compromised OS, root access,
+privileged accessibility access, or possession of an authorized signing key.
 
-El almacenamiento interno, los permisos y FLAG_SECURE reducen la exposición
-entre aplicaciones y en capturas. El control del sistema, root, accesibilidad
-privilegiada o la posesión de una clave de firma autorizada afectan a esos límites.
+## Network and connectors
+
+The gallery has no `INTERNET` permission. The Telegram connector uses the
+network to authenticate and request selected Telegram content. It stores its
+own session encrypted on the device; it does not reuse the official app's session.
+
+Selecting chats and authorizing the gallery are separate steps. Updating the
+selection requires authorization again. Intentionally opening media can report
+reads and views to Telegram. Secret, ephemeral, and protected content is excluded.
+
+The Tato interface requires a compatible, separately authorized provider.
+No Tato client, session, patch, or repackaging tool is distributed here.
+
+## Visual processing
+
+Dependencies and public models are downloaded on the build machine.
+Images and descriptions are processed on the phone with ONNX Runtime.
+The gallery does not send images or metadata to an external AI service.
+Analysis uses available media and does not require downloading the whole library.
+The Telegram source does not run visual analysis in this version.
+
+## Encrypted backups and migration
+
+Backups use PBKDF2-HMAC-SHA256 with 210,000 iterations and a random salt,
+followed by authenticated AES-GCM encryption. They include organization,
+chosen covers, chat folders, and pinned chats.
+
+Restore validates the structure and encrypts data with keys on the destination
+device. Non-exportable Android Keystore keys are recreated there rather than
+extracted. Connector authorization must be renewed after migration.
+
+Keep the backup passphrase separately from the backup. Original files and
+unencrypted copies you deliberately export depend on the protection of their
+destination.
+
+The public release uses a different certificate from the older lab builds.
+Android will reject an in-place update between those signers. Export and
+retain an encrypted backup before considering removal of an old installation.
+Cross-signer migration has not been validated in this release.

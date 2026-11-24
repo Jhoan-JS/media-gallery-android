@@ -1,34 +1,41 @@
-# Alcance de la preparación
+# Repository scope
 
-La base verificada es la galería 2.18, versionCode 20, y Conector TG 1.1,
-versionCode 2. El SHA-256 del APK histórico 2.18 es
-3746dc4286bfefab2e68e7194ec2864a6ae1f2565961fa47edf36bc4fe3064ec.
-La entrega histórica Conector Tato 2.5 se conserva en el proyecto original.
+This repository contains gallery **2.18** (`versionCode 20`) and Telegram
+connector **1.1** (`versionCode 2`).
 
-SOURCE_MANIFEST.json registra las rutas, tamaños y hashes de los archivos
-seleccionados del origen. La copia se creó por lista de inclusión.
-Las fuentes Java de la aplicación y del conector Telegram, sus recursos XML,
-pruebas unitarias y motor Go se conservaron. Las configuraciones de compilación
-se adaptaron para usar herramientas configurables y una firma debug desechable.
+| Path | Contents |
+| --- | --- |
+| `app` | Gallery, encrypted storage, media viewer, imports, organization, and unit tests |
+| `telegram` | Android connector and the Go engine sources |
+| `connectors/tato` | Documentation of the local provider interface |
+| `tools` | Public model preparation and source-content checks |
+| `licenses` | Retained third-party notices |
 
-Quedaron excluidos los APK y paquetes de distribución, las compilaciones,
-.qa del origen, Windows y Linux de escritorio, proyectos de ingeniería inversa,
-registros, evidencias de dispositivo, bases de datos, sesiones, copias de seguridad,
-credenciales y material de firma. También se excluyeron los pesos binarios,
-las muestras multimedia y los scripts que instalan o manipulan perfiles del teléfono.
+The gallery and Telegram connector can be built from this repository.
+The gallery can import local files without a service account.
 
-Los tests instrumentados originales dependen en parte del cliente de laboratorio,
-su exportador y recursos externos. Esta copia incluye las pruebas unitarias
-independientes y deja la aceptación de dispositivo como verificación pendiente.
+## Tato boundary
 
-La implementación Tato por reflexión, el exportador y el reempaquetado permanecen
-en el origen. El contrato público del conector describe la interfaz local existente.
+The gallery includes a consumer of the existing Tato provider interface.
+An installable Tato connector requires an implementation supplied by the
+client owner or an otherwise authorized distribution.
 
-El origen y sus directorios padre carecen de un repositorio Git aplicable.
-Los repositorios históricos presentes en los experimentos de terceros no
-pertenecen a la galería Android. Se creó una historia actual de importación por
-componentes, sin reconstruir fechas ni atribuir a la persona usuaria código ajeno.
+This repository does not include the Tato client, extracted client classes,
+DEX files, native client libraries, connector implementation, patches,
+repackagers, session material, or instructions to bypass protections.
+See the [interface contract](../connectors/tato/README.md).
 
-El 24 de noviembre de 2026 su titular autorizó publicar esta copia con MIT
-para el código propio y conservar las licencias de terceros.
-Un cuarto commit documenta esa decisión y adapta la presentación del repositorio.
+## Build inputs and release files
+
+Model weights and binary vectors are fetched or generated from pinned public
+inputs at build time. They are not committed to Git. Their origins and licenses
+are recorded in the [model manifest](../app/src/main/assets/ml/semantic/PROVENANCE.json).
+
+Compiled APKs belong in a GitHub Release, not the source tree. Release assets
+must be signed with the persistent production identity and accompanied by
+SHA-256 checksums. Debug APKs, unsigned APKs, private signing material,
+credentials, sessions, databases, logs, backups, and personal media are excluded.
+
+The source manifest records the original file hashes for provenance.
+Build tooling, documentation, and legal notices have separate maintained files.
+[VALIDATION.md](../VALIDATION.md) describes what was actually checked.

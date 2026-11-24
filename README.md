@@ -1,123 +1,107 @@
-# Media Gallery para Android
+# Media Gallery for Android
 
-Quería una galería para explorar bibliotecas grandes de fotos y videos sin
-descargarlo todo. Este proyecto empezó con Tato y después incorporó Telegram,
-con almacenamiento cifrado y reconocimiento visual ejecutado en el teléfono.
+An Android gallery for browsing photos and videos without downloading an entire
+chat library first. It supports on-demand playback, encrypted offline downloads,
+local file imports, search, and organization across sources.
 
-La galería tiene cuadrícula de medios, reproducción bajo demanda, descargas
-sin conexión, búsqueda, filtros y navegación por fechas. Para organizar el
-contenido añadí favoritos, Ver después, historial, álbumes, etiquetas,
-marcadores, carpetas de chats y portadas de video. Los respaldos cifrados
-conservan también las carpetas y los chats fijados.
+Start with **Local files** if you only want to use media on your phone. Add the
+Telegram connector when you want to browse selected chats. The app interface is
+currently in Spanish; this documentation uses English and includes the labels
+you will see on screen.
 
-Esta publicación parte de la galería 2.18 y Conector TG 1.1. Importé las fuentes
-como un snapshot y conservé ese origen en el historial. El código propio está
-disponible bajo MIT. Las dependencias, el vocabulario y los modelos públicos
-conservan sus licencias. [Alcance](docs/publication-scope.md) · [Licencias y atribuciones](LICENSE_STATUS.md)
+## Get started
 
-## Componentes
+Gallery **2.18** and Telegram connector **1.1** require **Android 12 or later
+(API 31)**. The release APKs target **ARM64 (`arm64-v8a`)** phones and tablets.
 
-| Directorio | Contenido |
-| --- | --- |
-| app | Galería, almacenamiento cifrado, reproductor y pruebas unitarias |
-| telegram | Conector Android y motor Go construido desde fuentes |
-| connectors/tato | Contrato local del conector Tato y límites de esta distribución |
-| tools | Preparación opcional de modelos públicos y comprobación del contenido publicable |
+1. Open [Releases](https://github.com/Jhoan-JS/media-gallery-android/releases).
+   Use the two APKs attached to the same release and check them against its
+   `SHA256SUMS.txt` file.
+2. Install `MediaGallery-2.18-arm64-v8a.apk`. Install
+   `TelegramConnector-1.1-arm64-v8a.apk` as well if you need Telegram.
+   Keep both apps in the same Android user or profile.
+3. Open the gallery and set a PIN.
+4. Choose **Archivos propios** (Local files), then **Importar** (Import), to
+   copy photos and videos you select into encrypted app storage.
+5. For Telegram, follow the [connector setup guide](telegram/README.md).
 
-Se pueden compilar la galería y el conector Telegram y usar archivos propios.
-La integración Tato incluida se limita al consumidor y a la documentación de
-su interfaz local. El cliente Tato modificado y los empaquetadores quedan fuera
-de esta publicación. [Contrato Tato](connectors/tato/README.md)
+**Existing lab installations:** the public APKs use a new production signing
+certificate. Android cannot install them as updates over older lab-signed apps.
+Keep your existing installation and export an encrypted backup before planning
+a migration. Replacing an installation removes its app data; a backup and its
+passphrase must be available first. The public release has not been tested as
+a migration from the older lab installation.
 
-## Requisitos
+If no APKs are attached to a release, build from source using the
+[build guide](docs/build.md). Debug builds are for local testing and use a
+different certificate from the public release.
 
-- Android 12 o posterior, API 31. La configuración por defecto genera ARM64.
-- JDK 21, Android SDK 36 y Build Tools 36.0.0.
-- Gradle 9.1.0 y Android Gradle Plugin 9.0.1.
-- Para compilar Telegram, Android NDK 28.2.13676358 y Go 1.27.4.
-- PowerShell para los scripts de preparación. Los módulos Java y Go también
-  pueden compilarse con sus herramientas habituales en otros sistemas.
+The current gallery allows Android user IDs 0, 14, and 15. User 0 is the usual
+primary user; other secondary user IDs are not supported by this version.
 
-Configura JAVA_HOME y ANDROID_HOME localmente. El script de Telegram descarga
-el SDK Go fijado y verifica su SHA-256, o utiliza TATO_GO_HOME si ya está instalado.
-Las dependencias de compilación se descargan de sus repositorios públicos.
+## What works without an account
 
-## Compilación local
+Local file imports, local playback, favorites, Watch later, albums, tags,
+bookmarks, recent history, and encrypted backups work without signing in to
+Tato or Telegram. Imported originals stay in their original location; the
+gallery keeps its own encrypted copy.
 
-En PowerShell, desde la raíz de esta copia, ejecuta lo siguiente.
+Telegram browsing requires a Telegram account, your own API ID and API hash,
+and permission for the chats you select. The connector keeps a separate
+session from the official Telegram app.
 
-```powershell
+Tato requires a separately authorized compatible connector. This repository
+contains the gallery's consumer and the [local interface documentation](connectors/tato/README.md),
+but does not distribute a Tato client, connector APK, patch, or repackager.
+
+## Browsing and organization
+
+- Browse a media grid, filter by date and type, and move quickly through dates.
+- Stream videos on demand, seek, resume playback, and move between files in the viewer.
+- Keep selected files offline and manage storage and download progress.
+- Organize media with favorites, Watch later, albums, tags, bookmarks, and archives.
+- Group chats into folders and pin chats.
+- Keep organization, chosen covers, chat folders, and pinned chats in encrypted backups.
+
+Optional visual search runs on the phone using pinned public models. It needs
+those models at build time and analyzes media already available to the app.
+Visual analysis is disabled for the Telegram source in this version.
+
+## Build and contribute
+
+The build scripts use Windows PowerShell, JDK 21, Gradle 9.1.0, Android SDK 36,
+and Build Tools 36.0.0. The Telegram engine also needs Go 1.27.4 and Android NDK
+28.2.13676358. The app's minimum Android version remains API 31.
+
+~~~powershell
 ./build.ps1 -Gradle gradle
-```
+~~~
 
-El proceso construye el motor Telegram desde fuentes, ejecuta las pruebas
-unitarias y Lint y genera los APK de desarrollo de ambos módulos.
-Usa -Gradle con la ruta de gradle.bat si Gradle no está en PATH.
-La compilación de desarrollo emplea una clave desechable creada en .qa.
-Ambas aplicaciones necesitan la misma firma para su permiso de comunicación local.
-Los APK release quedan sin firmar. La firma de producción se configura fuera
-de esta copia y debe conservar una identidad estable para futuras actualizaciones.
+See the [build guide](docs/build.md) for tool setup, optional models, ABI
+selection, output paths, and signing. See [Contributing](CONTRIBUTING.md) for
+checks to run before submitting a change.
 
-Los artefactos se generan bajo app/build y telegram/build.
-Los pesos de reconocimiento visual se preparan por separado.
+## Privacy and limits
 
-```powershell
-python tools/prepare_semantic.py
-python -m pip install numpy onnxruntime tokenizers
-python tools/prepare_semantic.py --topics
-```
+The gallery has no `INTERNET` permission. The Telegram connector connects to
+Telegram to authenticate and fetch selected content. Catalogs, cached media,
+and connector sessions stay in private app storage, using SQLCipher, AES-GCM,
+and Android Keystore. The apps require matching signatures and explicit
+authorization for their local connection.
 
-El script obtiene modelos públicos con revisiones y hashes fijados.
-Los vectores de temas se generan usando frases incluidas en el propio script.
-La aplicación verifica los modelos y ejecuta la inferencia en el teléfono.
-Esta instantánea de fuentes excluye los pesos ONNX y los vectores binarios.
-Las funciones visuales requieren completar su preparación antes de compilar.
+The PIN and optional biometrics protect the interface. The storage key remains
+available to resume background tasks after the process restarts; it is not
+derived from the PIN. Root access, a compromised OS, or an authorized app signed
+with the same key can weaken these boundaries.
 
-## Instalación y primer uso
+[Privacy details](docs/privacy.md) · [Validation and known limits](VALIDATION.md) ·
+[Version 2.18 notes](docs/releases/2.18.md) · [Repository scope](docs/publication-scope.md)
 
-1. Prueba los APK debug en un usuario Android separado o en un dispositivo de laboratorio.
-2. Instala la galería y Conector TG generados en la misma compilación y usuario.
-3. Crea el PIN de la galería. Archivos propios permite importar contenido que elijas.
-4. Para Telegram, introduce tus datos de aplicación de Telegram dentro del conector
-   y completa allí el inicio de sesión. Elige los chats que autorizas.
-5. En la galería, selecciona Telegram y autoriza la conexión. Después actualiza la biblioteca.
+## License
 
-Los APK debug tienen una firma distinta de la entrega instalada con la clave
-privada del proyecto. Android exige la misma firma para actualizar esa instalación.
-Conserva esa clave fuera del repositorio y realiza un respaldo cifrado antes
-de cualquier migración. La copia de publicación carece de las claves originales.
+Project-owned code is [MIT licensed](LICENSE), copyright Jhoan Marte.
+Dependencies, model assets, and their notices keep their own licenses.
+See [License scope](LICENSE_STATUS.md) and [Third-party notices](THIRD_PARTY_NOTICES.md).
 
-## Privacidad y seguridad
-
-La galería carece del permiso INTERNET. El conector Telegram se comunica
-con Telegram para autenticar la cuenta y obtener el contenido autorizado.
-El catálogo, la sesión del conector y la caché quedan en el almacenamiento
-privado de cada aplicación. Se utilizan SQLCipher y AES-GCM con Android Keystore.
-El transporte entre aplicaciones exige firma, paquete, usuario y consentimiento.
-
-Las pantallas privadas emplean FLAG_SECURE. La huella es opcional y se conserva
-el desbloqueo con PIN. La clave del almacenamiento permite reanudar tareas tras
-reiniciar el proceso. El PIN controla el acceso a la interfaz y su verificador
-es independiente de la clave de cifrado. Un dispositivo comprometido, un sistema
-con acceso privilegiado o una aplicación autorizada con la misma firma amplían
-el acceso que puede proteger esta arquitectura.
-
-El reconocimiento visual usa contenido disponible y procesamiento local.
-Los respaldos elegidos por el usuario se cifran con su frase. Los archivos
-originales o copias que el usuario exporte a otro destino quedan sujetos a la
-protección de ese destino. [Formato del respaldo](docs/privacy.md)
-
-## Pruebas y limitaciones
-
-Las pruebas de esta preparación se ejecutan con datos sintéticos y sin cuentas.
-Los resultados y las limitaciones están en [VALIDATION.md](VALIDATION.md).
-La instantánea conserva el comportamiento de la 2.18 en su código de aplicación.
-Los cambios de preparación afectan a compilación, firma de desarrollo y documentación.
-
-Las pruebas locales comprueban el código y la compilación. La aceptación en un
-dispositivo y el rendimiento con cuentas y bibliotecas reales requieren
-verificación adicional. El reconocimiento visual necesita preparar los modelos
-antes de compilar. La distribución contiene fuentes y documentación.
-
-El proyecto usa las marcas Tato y Telegram para identificar las integraciones
-y carece de afiliación oficial con esos servicios.
+Tato and Telegram are names used to identify integrations. This project is not
+affiliated with either service.

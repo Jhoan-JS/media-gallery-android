@@ -60,7 +60,7 @@ try {
         if ($LASTEXITCODE) { throw 'Host compilation failed' }
         & gomobile init
         if ($LASTEXITCODE) { throw 'gomobile init failed' }
-        & gomobile bind '-target=android/arm64,android/amd64' -androidapi=31 -o $out '-ldflags=-s -w -extldflags=-Wl,-z,max-page-size=16384' .
+        & gomobile bind -trimpath '-target=android/arm64,android/amd64' -androidapi=31 -o $out '-ldflags=-s -w -X runtime.modinfo= -extldflags=-Wl,-z,max-page-size=16384' .
         if ($LASTEXITCODE) { throw 'Android engine build failed' }
     } finally { Pop-Location }
 

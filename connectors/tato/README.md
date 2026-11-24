@@ -1,49 +1,51 @@
-# Contrato local de Tato
+# Tato local provider interface
 
-La implementación privada se encuentra en el proyecto de origen bajo bridge/src.
-Depende de ejecutarse dentro de un cliente Tato Android modificado.
-La preparación de publicación incluye la descripción del contrato y el consumidor
-de la galería en app/src/main/java/local/ttlab/gallery/Source.java.
+The gallery consumes an Android content provider implemented by a compatible
+Tato connector. The consumer is in
+[Source.java](../../app/src/main/java/local/ttlab/gallery/Source.java).
 
-El cliente Tato, las clases extraídas, los DEX, las claves de firma y los scripts
-de reempaquetado quedan fuera de esta copia. Un conector instalable necesita una
-implementación del proveedor por el titular del cliente o una distribución autorizada.
-Esta preparación carece de ese APK y no acredita un derecho a redistribuirlo.
+This repository documents that interface only. It does not include a Tato
+client, connector APK, extracted classes, DEX files, signing keys, patches,
+or repackaging scripts. A usable connector must come from the client owner
+or an otherwise authorized distribution. There is no public Tato installation
+package in this release.
 
-## Permisos y autorización
+## Permissions and authorization
 
-La autoridad usada por el consumidor es local.ttlab.bridge. El proveedor exige
-el permiso de firma local.ttlab.permission.GALLERY y valida el paquete de la
-galería, el mismo usuario Android y el consentimiento para la cuenta activa.
-La autorización se solicita a una actividad del conector mediante
-startActivityForResult. La selección y revocación corresponden al conector.
+The consumer uses the `local.ttlab.bridge` authority. The provider requires
+the signature permission `local.ttlab.permission.GALLERY` and validates the
+gallery package, the same Android user, and consent for the active account.
 
-El valor account identifica de forma opaca la cuenta autorizada. Cada operación
-debe verificar que sigue siendo la cuenta vinculada. Las revisiones de los medios
-impiden mezclar fragmentos de archivos que cambiaron durante una lectura.
+The gallery requests authorization through a connector activity using
+`startActivityForResult`. Selection and revocation belong to the connector.
 
-## Consultas y medios
+The `account` field is an opaque identity for the authorized account.
+Every operation must confirm it still matches the linked account. Media
+revisions prevent mixing chunks of a file that changed during a read.
 
-| Ruta relativa | Resultado esperado |
+## Queries and media
+
+| Relative path | Expected result |
 | --- | --- |
-| identity | Cursor con account |
-| capabilities | protocol, max_range y rpc_block |
-| channels | Identificador y título, con peer_key opcional |
-| media/{channel}?cursor={cursor}&limit=50 | Página de medios y extras next/newest |
-| thumb/{channel}/{message} | Miniatura disponible |
-| file/{channel}/{message} | Fragmento de archivo |
-| stream/{channel}/{message} | Secuencia acotada de fragmentos |
+| `identity` | Cursor containing `account` |
+| `capabilities` | `protocol`, `max_range`, and `rpc_block` |
+| `channels` | ID and title, with optional `peer_key` |
+| `media/{channel}?cursor={cursor}&limit=50` | Media page and `next`/`newest` extras |
+| `thumb/{channel}/{message}` | Available thumbnail |
+| `file/{channel}/{message}` | File range |
+| `stream/{channel}/{message}` | Bounded sequence of ranges |
 
-Salvo identity, las operaciones incluyen account. Las lecturas de medios
-incluyen revision. El cursor de medios contiene id, channel, name, mime, size,
-date, width, height, duration, revision y content_key. El siguiente cursor
-se comunica en los extras. Un cursor positivo debe avanzar hacia historial anterior.
+Operations other than `identity` include `account`. Media reads also include
+`revision`. Media cursor fields are `id`, `channel`, `name`, `mime`, `size`,
+`date`, `width`, `height`, `duration`, `revision`, and `content_key`.
+The next cursor is returned in cursor extras. A positive cursor must advance
+toward older history.
 
-Las lecturas usan ParcelFileDescriptor y modo r. Las rutas file y stream
-reciben offset y length. El consumidor alinea offsets a 131072 bytes,
-negocia capabilities y acepta hasta 1048576 bytes por rango en el protocolo 2.
-Valida longitud, límite del archivo, cancelación e identidad de origen.
-Los nombres, metadatos y miniaturas retornados son datos de entrada del proveedor.
+Reads use `ParcelFileDescriptor` in `r` mode. The `file` and `stream` paths
+take `offset` and `length`. The consumer aligns offsets to 131,072 bytes,
+negotiates capabilities, and accepts up to 1,048,576 bytes per range in
+protocol 2. It validates lengths, file boundaries, cancellation, and source
+identity. Returned names, metadata, and thumbnails remain untrusted provider input.
 
-El contrato ofrece lecturas. No incluye operaciones para enviar mensajes,
-editar contenido, obtener credenciales ni exportar la sesión de Tato.
+The contract exposes reads. It does not provide message sending, editing,
+credential retrieval, or Tato session export.

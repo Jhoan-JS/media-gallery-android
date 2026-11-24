@@ -1003,15 +1003,16 @@
   "publication_changes": [
     {
       "path": "app/build.gradle",
-      "publication_sha256": "00e0fd1b70a38238891858dbcba918ae9bf625bd211b97cdb7aad22886bf4de1"
+      "publication_sha256": "f91c1f47cf12ae5d747dda3b793dcc3b57f2ac990592e58d2f361797ac6bc66e"
     },
     {
       "path": "telegram/build.gradle",
-      "publication_sha256": "932e00de2b6fc2a0761221a8cdcb5e1ba80bd8c57cfb86bea8291d5a881c215c"
+      "publication_sha256": "ea19c60d72fb76f24644937e5c4dfc80dc93b6c7c674a6f881cf55ceead7c801"
     },
     {
       "path": "telegram/build-engine.ps1",
-      "publication_sha256": "498c82a2d89f72e588313a1156682a9831e3b1f74f3592f1ec6f1d4d589f61e7"
+      "publication_sha256": "cd2645d84ba6c1c60e60e308845418faab15adba410deac49dbc8bbc87beba5a",
+      "reason": "Omit private build paths using trimpath and remove gomobile local replacement paths from runtime module metadata."
     },
     {
       "path": "tools/prepare_semantic.py",
@@ -1020,8 +1021,83 @@
     },
     {
       "path": "telegram/engine/THIRD_PARTY_NOTICES.txt",
-      "publication_sha256": "c82ac5683acd3bae8042e7c6b70ec600a394aae369eae6892c9248abd5ba4e45",
+      "publication_sha256": "44ceccb626f6cdd7d4e18718b4e19417c4de44e51d53b598b44a1a89b16f4198",
       "reason": "Include Go mobile and build-tool BSD notices alongside the runtime dependency notices."
+    },
+    {
+      "path": "app/src/main/assets/licenses/AndroidX-Apache-2.0.txt",
+      "publication_sha256": "7fd8afb3a0993d7d98ef69ea5a4529da2438c5476db5d272d6b29e7a6839328e",
+      "reason": "Retain runtime dependency notices and metadata with the public source and Android packages."
+    },
+    {
+      "path": "app/src/main/assets/licenses/ONNX-Runtime-MIT.txt",
+      "publication_sha256": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c",
+      "reason": "Retain runtime dependency notices and metadata with the public source and Android packages."
+    },
+    {
+      "path": "app/src/main/assets/licenses/SQLCipher-Community.txt",
+      "publication_sha256": "bd05a47ffdfe7bd06527a25c57e8b97cc8ad394e9a2b78128393c641e649f2d2",
+      "reason": "Retain runtime dependency notices and metadata with the public source and Android packages."
+    },
+    {
+      "path": "telegram/src/main/assets/licenses/AndroidX-Apache-2.0.txt",
+      "publication_sha256": "7fd8afb3a0993d7d98ef69ea5a4529da2438c5476db5d272d6b29e7a6839328e",
+      "reason": "Retain runtime dependency notices and metadata with the public source and Android packages."
+    },
+    {
+      "path": "telegram/src/main/assets/licenses/Go-dependencies.txt",
+      "publication_sha256": "44ceccb626f6cdd7d4e18718b4e19417c4de44e51d53b598b44a1a89b16f4198",
+      "reason": "Retain runtime dependency notices and metadata with the public source and Android packages."
+    },
+    {
+      "path": "telegram/src/main/assets/licenses/Go-runtime.txt",
+      "publication_sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+      "reason": "Retain runtime dependency notices and metadata with the public source and Android packages."
+    },
+    {
+      "path": "telegram/src/main/assets/licenses/SQLCipher-Community.txt",
+      "publication_sha256": "bd05a47ffdfe7bd06527a25c57e8b97cc8ad394e9a2b78128393c641e649f2d2",
+      "reason": "Retain runtime dependency notices and metadata with the public source and Android packages."
+    },
+    {
+      "path": "licenses/Android-runtime-dependencies.txt",
+      "publication_sha256": "61048400eca7c3b7f064a34ad68db7897c31829ef4836eec6c453d596096588f",
+      "reason": "Retain runtime dependency notices and metadata with the public source and Android packages."
+    },
+    {
+      "path": "licenses/LibTomCrypt.txt",
+      "publication_sha256": "8f196cb13afd271f5e267fd29543fc454596382ad580e7592709492843996ac8",
+      "reason": "Retain runtime dependency notices and metadata with the public source and Android packages."
+    },
+    {
+      "path": "licenses/ONNX-Runtime-ThirdPartyNotices.txt",
+      "publication_sha256": "0e07b95f3a8d6230037707c5c4a2b554d12c4cb67369669ac255635528ffcee2",
+      "reason": "Retain runtime dependency notices and metadata with the public source and Android packages."
+    },
+    {
+      "path": "app/src/main/assets/licenses/Android-runtime-dependencies.txt",
+      "publication_sha256": "61048400eca7c3b7f064a34ad68db7897c31829ef4836eec6c453d596096588f",
+      "reason": "Retain runtime dependency notices and metadata with the public source and Android packages."
+    },
+    {
+      "path": "app/src/main/assets/licenses/LibTomCrypt.txt",
+      "publication_sha256": "8f196cb13afd271f5e267fd29543fc454596382ad580e7592709492843996ac8",
+      "reason": "Retain runtime dependency notices and metadata with the public source and Android packages."
+    },
+    {
+      "path": "app/src/main/assets/licenses/ONNX-Runtime-ThirdPartyNotices.txt",
+      "publication_sha256": "0e07b95f3a8d6230037707c5c4a2b554d12c4cb67369669ac255635528ffcee2",
+      "reason": "Retain runtime dependency notices and metadata with the public source and Android packages."
+    },
+    {
+      "path": "telegram/src/main/assets/licenses/Android-runtime-dependencies.txt",
+      "publication_sha256": "61048400eca7c3b7f064a34ad68db7897c31829ef4836eec6c453d596096588f",
+      "reason": "Retain runtime dependency notices and metadata with the public source and Android packages."
+    },
+    {
+      "path": "telegram/src/main/assets/licenses/LibTomCrypt.txt",
+      "publication_sha256": "8f196cb13afd271f5e267fd29543fc454596382ad580e7592709492843996ac8",
+      "reason": "Retain runtime dependency notices and metadata with the public source and Android packages."
     }
   ],
   "excluded_tato_implementation": {
@@ -1029,5 +1105,17 @@
     "publication": "connectors/tato/README.md contract only",
     "reason": "Original-client embedding and repackaging are outside this source distribution."
   },
-  "line_endings": "Git normalizes text to LF. PowerShell checkouts use CRLF. SHA-256 values in copied describe original bytes."
+  "line_endings": "Git normalizes text to LF. PowerShell checkouts use CRLF. SHA-256 values in copied describe original bytes.",
+  "runtime_notice_sources": [
+    {
+      "path": "licenses/ONNX-Runtime-ThirdPartyNotices.txt",
+      "url": "https://api.nuget.org/v3-flatcontainer/microsoft.ml.onnxruntime.managed/1.28.0/microsoft.ml.onnxruntime.managed.1.28.0.nupkg",
+      "entry": "ThirdPartyNotices.txt",
+      "sha256": "fb0af774b4d7cffc5b9d046f2aaeade2f37df2f80abf8033c95dfffcc77a8866"
+    },
+    {
+      "path": "licenses/LibTomCrypt.txt",
+      "url": "https://raw.githubusercontent.com/sqlcipher/libtomcrypt/476a9579ae94f32b9ea9e2747bfb04b302370259/LICENSE"
+    }
+  ]
 }
