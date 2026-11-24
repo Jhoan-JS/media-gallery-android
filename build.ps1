@@ -15,9 +15,9 @@ if (!$TestsOnly) {
         if ($LASTEXITCODE) { throw 'Disposable debug key generation failed' }
     }
 }
-$tasks = @(':app:testDebugUnitTest', ':telegram:testDebugUnitTest')
+$tasks = @(':app:testDebugUnitTest', ':telegram:testDebugUnitTest', ':webconnector:testDebugUnitTest')
 if (!$TestsOnly) {
-    $tasks += @(':app:assembleDebug', ':telegram:assembleDebug', ':app:assembleRelease', ':telegram:assembleRelease', ':app:lintRelease', ':telegram:lintRelease')
+    $tasks += @(':app:assembleDebug', ':telegram:assembleDebug', ':app:assembleRelease', ':telegram:assembleRelease', ':app:lintRelease', ':telegram:lintRelease', ':webconnector:assembleDebug', ':webconnector:assembleRelease', ':webconnector:lintRelease')
 }
 & $Gradle -p $root @tasks --console plain
 if ($LASTEXITCODE) { throw 'Android checks failed' }

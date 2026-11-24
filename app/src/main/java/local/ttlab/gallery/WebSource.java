@@ -18,7 +18,7 @@ import java.util.concurrent.Executors;
 
 final class WebSource extends Source {
     static final String PACKAGE = "local.ttlab.web";
-    static final String KEY = "web-rule34";
+    static final String KEY = "web-rule-thirty-four";
     private static final Uri BRIDGE = Uri.parse("content://local.ttlab.web.bridge");
     private static final int RANGE = 4 * CHUNK;
     private final ContentResolver resolver;
