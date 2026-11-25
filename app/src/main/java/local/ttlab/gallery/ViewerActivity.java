@@ -39,7 +39,7 @@ public final class ViewerActivity extends SecureActivity {
     private float playbackSpeed=1,videoVolume=1,touchX,touchY,touchLevel;private boolean boosted;private int levelSide;private long loadStarted,readyMillis=-1,frameMillis=-1;
     private PlaybackWatch watch=new PlaybackWatch();
     private volatile Item item;private VideoPlayer player;private MediaDataSource video;private boolean loading,loadFailed,prepared,surfaceReady;private volatile boolean closed;
-    private android.os.CancellationSignal webPrepare;
+    private android.os.CancellationSignal webPrepare, webNextPage;
     private Future<?> lookupWork,mediaWork,prepareWork,neighborWork,thumbnailWork;private volatile int thumbnailEpoch,epoch;private volatile boolean previewActive;private Runnable loadTimeout;
     private final Runnable tick=new Runnable(){public void run(){if(player!=null&&prepared&&!awaitingSeek){try{int position=player.getCurrentPosition();if(!dragging){seek.setProgress(position);elapsed(position);}observePlayback(position,player.isPlaying()&&!buffering&&!dragging);long now=android.os.SystemClock.elapsedRealtime();if(now-lastCheckpoint>=5000){persistPlayback();lastCheckpoint=now;}}catch(IllegalStateException ignored){}}if(!closed&&previewActive)handler.postDelayed(this,500);}};
     private final Runnable hideControls=()->{if(player!=null&&prepared&&!dragging&&previewActive&&!touchExploration())try{if(player.isPlaying())setControlsVisible(false);}catch(IllegalStateException ignored){}};
@@ -77,7 +77,7 @@ public final class ViewerActivity extends SecureActivity {
         previewLayout.bottomMargin=dp(64);
         videoOverlay.addView(scrubPreview,previewLayout);
         progress=new ProgressBar(this);progress.setIndeterminateTintList(android.content.res.ColorStateList.valueOf(getColor(R.color.gallery_primary)));progress.setContentDescription("Cargando archivo");body.addView(progress,new FrameLayout.LayoutParams(dp(28),dp(28),Gravity.CENTER));skipFeedback=GalleryUi.text(this,"",16,getColor(R.color.gallery_foreground));skipFeedback.setTag("video-skip-feedback");skipFeedback.setGravity(Gravity.CENTER);skipFeedback.setPadding(dp(16),dp(12),dp(16),dp(12));skipFeedback.setBackground(GalleryUi.background(0xc0000000,dp(12)));skipFeedback.setVisibility(View.GONE);skipFeedback.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);body.addView(skipFeedback,new FrameLayout.LayoutParams(-2,-2,Gravity.CENTER));
-        View.AccessibilityDelegate navigation=new View.AccessibilityDelegate(){@Override public void onInitializeAccessibilityNodeInfo(View host,android.view.accessibility.AccessibilityNodeInfo info){super.onInitializeAccessibilityNodeInfo(host,info);if(after!=null)info.addAction(new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_FORWARD,"Archivo siguiente"));if(before!=null)info.addAction(new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD,"Archivo anterior"));info.addAction(new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction.ACTION_CONTEXT_CLICK.getId(),"Opciones del archivo"));}@Override public boolean performAccessibilityAction(View host,int action,Bundle args){if(action==android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_FORWARD){move(1);return true;}if(action==android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD){move(-1);return true;}if(action==android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction.ACTION_CONTEXT_CLICK.getId()){showOptions();return true;}return super.performAccessibilityAction(host,action,args);}};image.setAccessibilityDelegate(navigation);gestureLayer.setAccessibilityDelegate(navigation);content(body);
+        View.AccessibilityDelegate navigation=new View.AccessibilityDelegate(){@Override public void onInitializeAccessibilityNodeInfo(View host,android.view.accessibility.AccessibilityNodeInfo info){super.onInitializeAccessibilityNodeInfo(host,info);if(after!=null||canExtendWeb())info.addAction(new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_FORWARD,"Archivo siguiente"));if(before!=null)info.addAction(new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD,"Archivo anterior"));info.addAction(new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction.ACTION_CONTEXT_CLICK.getId(),"Opciones del archivo"));}@Override public boolean performAccessibilityAction(View host,int action,Bundle args){if(action==android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_FORWARD){move(1);return true;}if(action==android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD){move(-1);return true;}if(action==android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction.ACTION_CONTEXT_CLICK.getId()){showOptions();return true;}return super.performAccessibilityAction(host,action,args);}};image.setAccessibilityDelegate(navigation);gestureLayer.setAccessibilityDelegate(navigation);content(body);
     }
     private void initVideoGestures(){
         videoPinch=new ScaleGestureDetector(this,new ScaleGestureDetector.SimpleOnScaleGestureListener(){@Override public boolean onScale(ScaleGestureDetector detector){zoomVideo(VideoGesture.scale(videoZoom,detector.getScaleFactor()));return true;}});
@@ -106,7 +106,17 @@ public final class ViewerActivity extends SecureActivity {
     private void chooseSpeed(){stopBoost();float[] speeds={.5f,.75f,1,1.25f,1.5f,1.75f,2};GalleryUi.menu(this,"Velocidad · "+String.valueOf(playbackSpeed).replace('.',',')+"×",new String[]{"0,5×","0,75×","1×","1,25×","1,5×","1,75×","2×"},n->{playbackSpeed=speeds[n];watch.resetSample();effectiveSpeed(playbackSpeed);final float selected=playbackSpeed;final State origin=state;origin.database.execute(()->{try{origin.library.setSetting("player-speed",Float.toString(selected));}catch(Exception failure){runOnUiThread(()->{if(!isDestroyed())Toast.makeText(this,"No se pudo guardar la velocidad",Toast.LENGTH_SHORT).show();});}});showControls();});}
     private float brightness(){float value=getWindow().getAttributes().screenBrightness;return value>=0?value:android.provider.Settings.System.getInt(getContentResolver(),android.provider.Settings.System.SCREEN_BRIGHTNESS,128)/255f;}
     private void adjustLevel(int side,float value){if(side<0){value=Math.max(.05f,value);WindowManager.LayoutParams attributes=getWindow().getAttributes();attributes.screenBrightness=Math.max(.05f,value);getWindow().setAttributes(attributes);}else{videoVolume=value;if(player!=null)try{player.setVolume(value,value);}catch(IllegalStateException ignored){}}feedback((side<0?"Brillo ":"Volumen del video ")+Math.round(value*100)+" %");}
-    private void feedback(String value){FrameLayout.LayoutParams position=new FrameLayout.LayoutParams(-2,-2,Gravity.CENTER);skipFeedback.setLayoutParams(position);skipFeedback.setText(value);skipFeedback.setContentDescription(value);skipFeedback.setVisibility(View.VISIBLE);handler.removeCallbacks(hideSkipFeedback);handler.postDelayed(hideSkipFeedback,1200);}
+    private void feedback(String value) { feedback(value, 1200); }
+
+    private void feedback(String value, int millis) {
+        FrameLayout.LayoutParams position = new FrameLayout.LayoutParams(-2, -2, Gravity.CENTER);
+        skipFeedback.setLayoutParams(position);
+        skipFeedback.setText(value);
+        skipFeedback.setContentDescription(value);
+        skipFeedback.setVisibility(View.VISIBLE);
+        handler.removeCallbacks(hideSkipFeedback);
+        if (millis > 0) handler.postDelayed(hideSkipFeedback, millis);
+    }
     private void levelOptions(){GalleryUi.menu(this,"Controles del video",new String[]{"Brillo de esta ventana","Volumen del video","Cómo usar los gestos"},n->{if(n==2){android.app.AlertDialog guide=new SecureDialogs.Builder(this).setTitle("Gestos del video").setMessage("Desliza horizontalmente para cambiar de archivo. Doble toque central amplía/restablece; laterales ±10 segundos. Pellizca para ajustar el zoom. Sin zoom, desliza verticalmente a izquierda para brillo o a derecha para volumen. Mantén pulsado el video en reproducción para acelerar a 2×; al soltar vuelve a tu velocidad.").setPositiveButton("Cerrar",null).create();trackPrivateDialog(guide);guide.show();return;}SeekBar slider=new SeekBar(this);slider.setMax(100);slider.setProgress(Math.round((n==0?brightness():videoVolume)*100));slider.setContentDescription(n==0?"Brillo de esta ventana":"Volumen del video");slider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){public void onStartTrackingTouch(SeekBar s){}public void onStopTrackingTouch(SeekBar s){}public void onProgressChanged(SeekBar s,int value,boolean user){if(user)adjustLevel(n==0?-1:1,value/100f);}});android.app.AlertDialog dialog=new SecureDialogs.Builder(this).setTitle(n==0?"Brillo de esta ventana":"Volumen del video").setView(slider).setPositiveButton("Cerrar",null).create();trackPrivateDialog(dialog);dialog.show();});}
     private void zoomVideo(float factor){videoZoom=Math.max(1,Math.min(4,factor));surface.setScaleX(videoZoom);surface.setScaleY(videoZoom);if(videoZoom==1){surface.setTranslationX(0);surface.setTranslationY(0);}}
     private void showOptions(){
@@ -137,18 +147,39 @@ public final class ViewerActivity extends SecureActivity {
             }
         });
     }
-    private void showWebTags(Item opened){
-        final String[] missing={"Sin etiquetas disponibles"};
-        state.database.execute(()->{
-            String saved=state.webCatalogue.tags(opened.id);
-            String[] tags=saved.trim().isEmpty()?missing:saved.split("\\s+");
-            if(tags.length>80)tags=java.util.Arrays.copyOf(tags,80);
-            final String[] options=tags;
-            runOnUiThread(()->{if(item==opened&&previewActive&&state.unlocked)GalleryUi.menu(this,"Etiquetas del sitio",options,n->{
-                if(options==missing)return;
-                setResult(RESULT_OK,new Intent().putExtra("web-tag",options[n]));
-                finish();
-            });});
+    private void showWebTags(Item opened) {
+        final State origin = state;
+        final int generation = epoch;
+        origin.database.execute(() -> {
+            if (!current(generation, opened)) return;
+            String saved = origin.webCatalogue.tags(opened.id).trim();
+            String[] tags = saved.isEmpty() ? new String[0] : saved.split("\\s+");
+            String[] options = java.util.Arrays.copyOf(tags, Math.min(80, tags.length));
+            runOnUiThread(() -> {
+                if (!current(generation, opened)) return;
+                if (options.length == 0) {
+                    feedback("Sin etiquetas disponibles");
+                    return;
+                }
+                GalleryUi.menu(this, "Etiquetas del sitio", options,
+                        selected -> showWebTagActions(options[selected], opened, generation));
+            });
+        });
+    }
+
+    private void showWebTagActions(String tag, Item opened, int generation) {
+        if (!current(generation, opened)) return;
+        GalleryUi.menu(this, tag, new String[]{"Añadir a la búsqueda", "Excluir de la búsqueda",
+                "Buscar solo esta etiqueta"}, action -> {
+            if (!current(generation, opened)) return;
+            String base = action == 2 ? "" : WebCatalogue.tagsForQuery(state, filter.webQuery);
+            String result = WebTags.edit(base, tag, action == 1);
+            if (result == null) {
+                feedback("Usa hasta ocho etiquetas e incluye al menos una.", 4200);
+                return;
+            }
+            setResult(RESULT_OK, new Intent().putExtra("web-query", result));
+            finish();
         });
     }
     private void organize(Item opened){
@@ -380,7 +411,70 @@ public final class ViewerActivity extends SecureActivity {
         neighborWork=origin.database.submit(()->{try{Item left,right;if(sequence==null){left=origin.library.neighbor(opened,snapshot,-1);right=origin.library.neighbor(opened,snapshot,1);}else{int index=-1;for(int n=0;n<sequence.length;n++)if(sequence[n]==key(opened.channel,opened.id)){index=n;break;}left=sequenceNeighbor(origin,sequence,index,-1);right=sequenceNeighbor(origin,sequence,index,1);}final Item previousItem=left,nextItem=right;runOnUiThread(()->{if(current(generation,opened)){before=previousItem;after=nextItem;}});}catch(Exception failure){runOnUiThread(()->{if(current(generation,opened)){loadFailed=true;status.setText(metadata()+" · No se pudo consultar el siguiente archivo. Reintenta la carga.");}});}});
     }
     private static Item sequenceNeighbor(State origin,long[] sequence,int index,int direction)throws Exception{if(index<0)return null;for(int n=index+direction;n>=0&&n<sequence.length;n+=direction){long key=sequence[n];Item found=origin.library.get((int)(key>>>32),(int)key);if(found!=null)return found;}return null;}
-    private void move(int direction){if(!previewActive||!state.unlocked)return;Item destination=direction<0?before:after;if(destination==null)return;currentChannel=destination.channel;currentId=destination.id;wantsPlay=true;getIntent().putExtra("channel",currentChannel).putExtra("id",currentId);load();}
+    private void move(int direction) {
+        if (!previewActive || state == null || !state.unlocked) return;
+        Item destination = direction < 0 ? before : after;
+        if (destination != null) goTo(destination);
+        else if (direction > 0 && canExtendWeb()) extendWebFeed();
+    }
+
+    private void goTo(Item destination) {
+        currentChannel = destination.channel;
+        currentId = destination.id;
+        wantsPlay = true;
+        getIntent().putExtra("channel", currentChannel).putExtra("id", currentId);
+        load();
+    }
+
+    private boolean canExtendWeb() {
+        return state != null && item != null && state.webCatalogue != null && keys == null
+                && filter != null && filter.webQuery != null && !filter.webQuery.isEmpty();
+    }
+
+    private void extendWebFeed() {
+        final State origin = state;
+        if (webNextPage != null || origin.database.isShutdown()) return;
+        final Item opened = item;
+        final int generation = epoch;
+        final MediaFilter snapshot = filter.copy();
+        final android.os.CancellationSignal signal = new android.os.CancellationSignal();
+        webNextPage = signal;
+        feedback("Buscando más publicaciones…", 0);
+        origin.database.execute(() -> {
+            Item destination = null;
+            String message = "";
+            try {
+                signal.throwIfCanceled();
+                destination = origin.library.neighbor(opened, snapshot, 1);
+                int page = origin.webCatalogue.next(snapshot.webQuery);
+                for (int n = 0; destination == null && page > 0 && n < WebCatalogue.PAGE_SCAN_LIMIT; n++) {
+                    WebCatalogue.fetchPage(origin, snapshot.webQuery, page, signal);
+                    destination = origin.library.neighbor(opened, snapshot, 1);
+                    page = origin.webCatalogue.next(snapshot.webQuery);
+                }
+                if (destination == null) message = page > 0 ? "Desliza de nuevo para buscar más."
+                        : "Llegaste al final.";
+            } catch (Exception failure) {
+                message = WebSource.message(failure) + " Desliza para reintentar.";
+            }
+            final Item next = destination;
+            final String notice = message;
+            runOnUiThread(() -> {
+                if (webNextPage != signal) return;
+                webNextPage = null;
+                if (!current(generation, opened)) return;
+                if (next != null) goTo(next);
+                else feedback(notice, 4200);
+            });
+        });
+    }
+
+    private void cancelWebPage() {
+        if (webNextPage == null) return;
+        webNextPage.cancel();
+        webNextPage = null;
+        skipFeedback.setVisibility(View.GONE);
+    }
     private void toggleFlag(String field){
         if(item==null||!previewActive||!state.unlocked)return;final Item opened=item;final State origin=state;final int generation=epoch;final boolean old=field.equals("favorite")?favoriteValue:field.equals("later")?laterValue:archivedValue;final int edit=flagEdits.getOrDefault(field,0)+1;flagEdits.put(field,edit);if(field.equals("favorite"))favoriteValue=!old;else if(field.equals("later"))laterValue=!old;else archivedValue=!old;
         origin.database.execute(()->{try{String action=field.equals("favorite")?(old?"unfavorite":"favorite"):field.equals("later")?(old?"unlater":"later"):(old?"unarchive":"archive");PersonalLibrary.Change change=origin.library.personal.change(java.util.Collections.singletonList(opened),action);runOnUiThread(()->{if(current(generation,opened)){resolveNeighbors();if(flagEdits.getOrDefault(field,0)==edit)undo.show(origin,change,"Marca guardada",96,this::refreshPersonalFlags);}});}catch(Exception error){runOnUiThread(()->{if(current(generation,opened)&&flagEdits.getOrDefault(field,0)==edit){if(field.equals("favorite"))favoriteValue=old;else if(field.equals("later"))laterValue=old;else archivedValue=old;status.setVisibility(View.VISIBLE);status.setText("No se pudo guardar la marca. Reintenta desde Opciones.");showControls();}});}});
@@ -446,7 +540,7 @@ public final class ViewerActivity extends SecureActivity {
     }
     private static void cancel(Future<?> work){if(work!=null)work.cancel(true);}
     private void clearLoadTimeout(){if(loadTimeout!=null)handler.removeCallbacks(loadTimeout);loadTimeout=null;}
-    private void cancelRequest(){stopBoost();epoch++;if(webPrepare!=null){webPrepare.cancel();webPrepare=null;}cancelFrame(coverWork);coverWork=null;cancel(lookupWork);cancel(mediaWork);cancel(prepareWork);cancel(neighborWork);clearLoadTimeout();cancelVideoThumbnail();handler.removeCallbacks(hideSkipFeedback);}
+    private void cancelRequest(){stopBoost();epoch++;cancelWebPage();if(webPrepare!=null){webPrepare.cancel();webPrepare=null;}cancelFrame(coverWork);coverWork=null;cancel(lookupWork);cancel(mediaWork);cancel(prepareWork);cancel(neighborWork);clearLoadTimeout();cancelVideoThumbnail();handler.removeCallbacks(hideSkipFeedback);}
     private void releaseVideo(){clearScrubPreview();boosted=false;levelSide=0;if(surface!=null){surface.setKeepScreenOn(false);surface.setScaleX(1);surface.setScaleY(1);surface.setTranslationX(0);surface.setTranslationY(0);}videoZoom=1;cancel(prepareWork);cancelVideoThumbnail();watch.resetSample();buffering=false;dragging=false;VideoPlayer old=player;MediaDataSource data=video;player=null;video=null;prepared=false;awaitingSeek=false;if(play!=null)play.setEnabled(false);handler.removeCallbacks(tick);handler.removeCallbacks(hideControls);if(data instanceof BufferedMediaSource)try{data.close();}catch(Exception ignored){}if(old!=null)old.close();if(data!=null&&!(data instanceof BufferedMediaSource))new Thread(()->{try{data.close();}catch(Exception ignored){}},"CloseGalleryVideoSource").start();}
     @Override public boolean dispatchKeyEvent(KeyEvent event){
         if(event.getAction()==KeyEvent.ACTION_DOWN&&previewActive&&state!=null&&state.unlocked&&getWindow().getDecorView().hasWindowFocus()){
@@ -460,7 +554,7 @@ public final class ViewerActivity extends SecureActivity {
             if(media&&(code==KeyEvent.KEYCODE_PLUS||code==KeyEvent.KEYCODE_EQUALS||code==KeyEvent.KEYCODE_MINUS)){if(item!=null&&item.video())zoomVideo(code==KeyEvent.KEYCODE_MINUS?1:2);else if(code==KeyEvent.KEYCODE_MINUS)image.fit();else image.toggleZoom();return true;}
         }return super.dispatchKeyEvent(event);
     }
-    @Override void onCovered(){undo.clear();clearScrubPreview();cancelFrame(coverWork);coverWork=null;}
+    @Override void onCovered(){cancelWebPage();undo.clear();clearScrubPreview();cancelFrame(coverWork);coverWork=null;}
     @Override protected void onPause(){undo.clear();persistPlayback();flushRecentVisits();previewActive=false;cancelRequest();loading=false;releaseVideo();super.onPause();}
     @Override protected void onStop(){
         if(state!=null&&state.liveId!=null&&!isFinishing()&&!isChangingConfigurations()){

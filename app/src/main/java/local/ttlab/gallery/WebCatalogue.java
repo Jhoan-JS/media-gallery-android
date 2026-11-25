@@ -1,8 +1,10 @@
 package local.ttlab.gallery;
 
 import android.database.Cursor;
+import android.os.CancellationSignal;
 
 final class WebCatalogue {
+    static final int PAGE_SCAN_LIMIT = 3;
     private final Library library;
 
     WebCatalogue(Library library) {
@@ -10,6 +12,19 @@ final class WebCatalogue {
         library.db.execSQL("CREATE TABLE IF NOT EXISTS web_queries(query TEXT PRIMARY KEY,next_page INTEGER NOT NULL,updated INTEGER NOT NULL)");
         library.db.execSQL("CREATE TABLE IF NOT EXISTS web_results(query TEXT NOT NULL,id INTEGER NOT NULL,PRIMARY KEY(query,id))");
         library.db.execSQL("CREATE TABLE IF NOT EXISTS web_tags(id INTEGER PRIMARY KEY,tags TEXT NOT NULL)");
+    }
+
+    static String tagsForQuery(State origin, String query) {
+        if (query == null) return "";
+        return ":".equals(query) && WebSource.GELBOORU.equals(origin.key)
+                ? origin.preferences.getString("web-home-tags", "") : query;
+    }
+
+    static void fetchPage(State origin, String query, int page, CancellationSignal cancel) throws Exception {
+        cancel.throwIfCanceled();
+        WebSource.Result result = ((WebSource) origin.source).search(tagsForQuery(origin, query), page, cancel);
+        cancel.throwIfCanceled();
+        origin.webCatalogue.store(query, page, result, origin.liveId != null);
     }
 
     int next(String query) {

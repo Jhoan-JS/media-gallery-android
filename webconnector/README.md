@@ -1,6 +1,6 @@
 # Optional Web Connector
 
-Gallery 2.26 and Web Connector 1.6 support Rule34.xxx and Gelbooru. Install both
+Gallery 2.27 and Web Connector 1.6 support Rule34.xxx and Gelbooru. Install both
 APK files in the same Android user with the same signing certificate. Android 12
 or later is required. Telegram Connector 1.1 and the local Tato interface use
 their existing protocols.
@@ -16,9 +16,13 @@ their existing protocols.
    together, and the next page loads as you scroll. Open **Filtros** next to
    search to narrow the feed by type, orientation or watched status. Choose
    **Tamaño de miniaturas** under settings for a larger or denser grid.
+   **Encuadre de miniaturas** shows the complete preview inside the tile.
+   Tap the star to save or reopen named searches for the selected site.
 4. Tap a tile to open the viewer. The gallery restores your place when you return.
-   Searches can browse up to 40 pages of 30 posts each, subject to site limits. **Etiquetas del sitio** starts a
-   search for the selected tag. Use the source picker to leave and return.
+   Swipe forward at the end of the loaded feed to continue into the next page.
+   Searches can browse up to 40 pages of 30 posts each, subject to site limits.
+   **Etiquetas del sitio** in the viewer adds a tag to the current search,
+   excludes it, or starts a search for that tag alone.
 
 Each web source is off by default. Gelbooru includes every rating returned
 by its API. Gelbooru controls what the API returns for the account. Rule34.xxx
@@ -27,8 +31,8 @@ go to its accepted CDN hosts. Each
 site has its own settings and account. Gelbooru handles its responses with a
 temporary in-memory library and media buffers, including when the site sends
 `Cache-Control: no-store`. Its recent posts, search results and viewer marks
-are cleared when that session ends. Startup tags and credentials remain
-encrypted. Rule34.xxx uses its existing encrypted library and cache.
+are cleared when that session ends. Startup tags, saved searches and credentials remain
+encrypted. Saving a search stores its name and terms locally for that site. Rule34.xxx uses its existing encrypted library and cache.
 **Revocar y apagar** removes the selected site's API key and stops its requests.
 Web libraries have no export or permanent downloads.
 

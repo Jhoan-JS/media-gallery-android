@@ -166,6 +166,7 @@ final class VariantTransport {
                     throw new IOException("Missing Rule34 fixture rating");
                 }
                 JSONArray rows = new JSONArray();
+                boolean viewerFeed = gelbooru && "fixture_viewer".equals(tags) && id == null;
                 JSONObject matching = null;
                 if (gelbooru) {
                     for (JSONObject known : livePosts) {
@@ -179,6 +180,14 @@ final class VariantTransport {
                     rows.put(matching == null ? row(Integer.parseInt(id), gelbooru) : matching);
                 } else if (matching != null) {
                     if ("0".equals(page)) rows.put(matching);
+                } else if (viewerFeed) {
+                    int number = Integer.parseInt(page);
+                    Log.i("GalleryWebFixture", "Viewer fixture page " + number);
+                    if (number == 0) {
+                        for (int n = 449; n >= 423; n -= 2) rows.put(row(n, true));
+                    } else if (number == 1) {
+                        rows.put(row(422, true)).put(row(421, true));
+                    }
                 } else if (gelbooru || tags.contains(expectedTag)) {
                     int queryOffset = gelbooru && tags.startsWith("fixture_home") ? 100
                             : gelbooru && tags.startsWith("fixture_search") ? 200 : 0;
@@ -189,9 +198,9 @@ final class VariantTransport {
                 if (!gelbooru) return rows.toString();
                 if (id != null) return new JSONObject().put("post", rows).toString();
                 StringBuilder xml = new StringBuilder("<?xml version=\"1.0\"?><posts count=\"")
-                        .append(rows.length() == 0 ? 0 : matching != null ? 1 : 38)
+                        .append(rows.length() == 0 ? 0 : viewerFeed ? 16 : matching != null ? 1 : 38)
                         .append("\" offset=\"")
-                        .append("1".equals(page) ? 30 : 0).append("\">");
+                        .append("1".equals(page) ? viewerFeed ? 14 : 30 : 0).append("\">");
                 for (int index = 0; index < rows.length(); index++) {
                     JSONObject post = rows.getJSONObject(index);
                     boolean elements = index % 2 != 0;

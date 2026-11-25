@@ -41,10 +41,11 @@ primary user; other secondary user IDs are not supported by this version.
 
 ## Optional web sources
 
-Gallery 2.26 and Web Connector 1.6 support Gelbooru and Rule34.xxx in the source
+Gallery 2.27 and Web Connector 1.6 support Gelbooru and Rule34.xxx in the source
 picker. Each site stays disabled until configured on the device. Images and
 videos share one feed that loads more as you scroll. Filters are next to search,
-and thumbnail size is under the site's settings.
+and thumbnail size and framing are under the site's settings. Open the star
+next to the source controls to save and reuse named searches.
 The [connector guide](webconnector/README.md) covers setup, privacy and limits.
 
 ## What works without an account

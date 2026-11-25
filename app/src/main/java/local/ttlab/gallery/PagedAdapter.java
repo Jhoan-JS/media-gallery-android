@@ -12,7 +12,7 @@ final class PagedAdapter extends BaseAdapter implements SectionIndexer {
     private DateSections sections=DateSections.EMPTY;private Map<String,Item> selected=Collections.emptyMap();
     private final Activity activity;private final State state;private int count,generation;private final MediaFilter filter;
     private final LinkedHashMap<Integer,List<Item>> pages=new LinkedHashMap<Integer,List<Item>>(4,0.75f,true){protected boolean removeEldestEntry(Map.Entry<Integer,List<Item>> e){return size()>4;}};
-    private final Set<Integer> pending=new HashSet<>();private volatile boolean closed;private boolean paused;private final PreviewRequests previews;
+    private final Set<Integer> pending=new HashSet<>();private volatile boolean closed;private boolean paused,fitThumbnails;private final PreviewRequests previews;
     PagedAdapter(Activity a,State s,int c,String q,int t,boolean o,int n){this(a,s,c,q,t,o,0,0,false,n);}
     PagedAdapter(Activity a,State s,int c,String q,int t,boolean o,long f,long u,boolean d,int n){this(a,s,new MediaFilter(c,q,t,o,f,u,d),n);}
     PagedAdapter(Activity a,State s,MediaFilter f,int n){activity=a;state=s;filter=f.copy();count=n;previews=new PreviewRequests(s.media,s.gridPreviews,()->!closed&&!paused&&s.unlocked,a::runOnUiThread);}
@@ -28,6 +28,11 @@ final class PagedAdapter extends BaseAdapter implements SectionIndexer {
         notifyDataSetChanged();
     }
     MediaFilter snapshot(){return filter.copy();}
+    void setFitThumbnails(boolean fit) {
+        if (fitThumbnails == fit) return;
+        fitThumbnails = fit;
+        notifyDataSetChanged();
+    }
     void sections(DateSections index){sections=index;}
     void selection(Map<String,Item> values){selected=values;notifyDataSetChanged();}
     @Override public Object[] getSections(){return sections.labels.clone();}
@@ -49,7 +54,7 @@ final class PagedAdapter extends BaseAdapter implements SectionIndexer {
         boolean continuing=item!=null&&item.video()&&item.positionMs>0&&item.durationMs>0&&!item.completed;tile.progress.setVisibility(continuing?View.VISIBLE:View.GONE);tile.progress.setProgress(continuing?(int)Math.min(100,100L*item.positionMs/item.durationMs):0);
         if(item!=null)tile.setContentDescription(tile.getContentDescription()+(item.favorite?", favorito":"")+(item.watchLater?", ver después":"")+(continuing?", en progreso":""));
         if(item==null){if(!pages.containsKey(position/PAGE_SIZE))load(position/PAGE_SIZE);else tile.caption.setVisibility(View.VISIBLE);return tile;}
-        Bitmap cached=state.media.memoryPreview(item);if(cached!=null)tile.preview(cached);else previews.request(item,tile,preview->{if(!closed&&!paused&&item.cacheKey().equals(tile.getTag())){if(preview!=null)tile.preview(preview);else{tile.caption.setText(item.label()+"\nSin miniatura");tile.caption.setVisibility(View.VISIBLE);tile.setContentDescription(tile.getContentDescription()+", sin miniatura. Toca para abrir.");}}});return tile;
+        Bitmap cached=state.media.memoryPreview(item);if(cached!=null)tile.preview(cached,fitThumbnails);else previews.request(item,tile,preview->{if(!closed&&!paused&&item.cacheKey().equals(tile.getTag())){if(preview!=null)tile.preview(preview,fitThumbnails);else{tile.caption.setText(item.label()+"\nSin miniatura");tile.caption.setVisibility(View.VISIBLE);tile.setContentDescription(tile.getContentDescription()+", sin miniatura. Toca para abrir.");}}});return tile;
     }
     private void load(int number){
         if(closed||pending.contains(number)||pending.size()>=4)return;pending.add(number);final int requested=generation;
@@ -79,7 +84,13 @@ final class PagedAdapter extends BaseAdapter implements SectionIndexer {
             video=new ImageView(c);video.setImageResource(android.R.drawable.ic_media_play);video.setColorFilter(0xffeef6f3);android.graphics.drawable.GradientDrawable scrim=new android.graphics.drawable.GradientDrawable();scrim.setShape(android.graphics.drawable.GradientDrawable.OVAL);scrim.setColor(0xd9101717);video.setBackground(scrim);video.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);FrameLayout.LayoutParams badge=new FrameLayout.LayoutParams(dp(c,28),dp(c,28),Gravity.TOP|Gravity.END);badge.setMargins(dp(c,4),dp(c,4),dp(c,4),0);addView(video,badge);
         }
         void placeholder(){image.setScaleType(ImageView.ScaleType.CENTER_INSIDE);image.setImageResource(R.drawable.ic_gallery_image);image.setColorFilter(getContext().getColor(R.color.gallery_muted));}
-        void preview(Bitmap bitmap){image.clearColorFilter();image.setScaleType(ImageView.ScaleType.CENTER_CROP);image.setImageBitmap(bitmap);}
+        void preview(Bitmap bitmap) { preview(bitmap, false); }
+
+        void preview(Bitmap bitmap, boolean fit) {
+            image.clearColorFilter();
+            image.setScaleType(fit ? ImageView.ScaleType.FIT_CENTER : ImageView.ScaleType.CENTER_CROP);
+            image.setImageBitmap(bitmap);
+        }
         private static int dp(Activity activity,int value){return Math.round(value*activity.getResources().getDisplayMetrics().density);}
     }
 }

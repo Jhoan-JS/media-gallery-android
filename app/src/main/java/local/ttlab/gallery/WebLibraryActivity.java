@@ -29,7 +29,6 @@ import java.util.List;
 
 public final class WebLibraryActivity extends SecureActivity {
     private static final int SETUP = 601, VIEWER = 602;
-    private static final int MAX_SPARSE_PAGES = 3;
     private static final String[] TILE_SIZES = {"Grandes", "Medianas", "Compactas"};
     private static final String[] COLLECTIONS = {"Biblioteca", "Favoritos", "Ver después", "Continuar", "Historial"};
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -38,17 +37,17 @@ public final class WebLibraryActivity extends SecureActivity {
     private WebSource web;
     private State live;
     private EditText terms;
-    private ImageButton search, clear, filters;
+    private ImageButton search, clear, filters, savedSearches;
     private Button retry, connect, home;
     private TextView heading, status;
     private ProgressBar progress;
     private GalleryGridView grid;
     private PagedAdapter adapter;
-    private String query = "", homeTags = "", pendingTag;
+    private String query = "", homeTags = "", pendingQuery;
     private int type, shape, watched, tileSize, collection, revision, nextPage, sparsePages;
     private boolean gelbooru, active, enabled, editingTerms, viewing, rendering, retryFirst;
     private String pageError = "";
-    private boolean checking = true;
+    private boolean checking = true, fitThumbnails;
     private CancellationSignal request;
 
     static Intent intent(Context context, String source) {
@@ -67,6 +66,7 @@ public final class WebLibraryActivity extends SecureActivity {
         shape = preference("web-filter-shape", 3);
         watched = preference("web-filter-watched", 2);
         tileSize = preference("web-tile-size", TILE_SIZES.length - 1);
+        fitThumbnails = state.preferences.getBoolean("web-fit-thumbnails", false);
         collection = gelbooru ? 0 : Math.max(0, Math.min(4, state.preferences.getInt("web-collection", 0)));
 
         LinearLayout page = new LinearLayout(this);
@@ -76,6 +76,10 @@ public final class WebLibraryActivity extends SecureActivity {
         LinearLayout header = row(page);
         header.addView(UiSource.selector(this, this::leaveForSource));
         header.addView(new View(this), new LinearLayout.LayoutParams(0, dp(56), 1));
+        savedSearches = GalleryUi.icon(this, R.drawable.ic_gallery_star, "Búsquedas guardadas");
+        savedSearches.setTooltipText("Búsquedas guardadas");
+        savedSearches.setOnClickListener(view -> showSavedSearches());
+        header.addView(savedSearches);
         ImageButton options = GalleryUi.icon(this, R.drawable.ic_gallery_settings, "Ajustes de " + SourceId.label(state.key));
         options.setOnClickListener(view -> options());
         header.addView(options);
@@ -232,17 +236,47 @@ public final class WebLibraryActivity extends SecureActivity {
         return Math.max(2, Math.min(8, width / targetWidth));
     }
 
+    private void showSavedSearches() {
+        if (!ready() || !enabled) return;
+        String current = WebTags.normalized(terms.getText().toString());
+        WebSavedSearches.show(this, gelbooru && current.isEmpty() ? homeTags : current, saved -> {
+            setTerms(saved);
+            submit(true);
+        });
+    }
+
     private void options() {
         String[] labels = gelbooru
-                ? new String[]{"Tamaño de miniaturas", "Actualizar publicaciones", "Etiquetas de inicio", "Colecciones de la sesión", "Conexión"}
-                : new String[]{"Tamaño de miniaturas", "Actualizar publicaciones", "Colecciones", "Conexión"};
+                ? new String[]{"Tamaño de miniaturas", "Encuadre de miniaturas", "Actualizar publicaciones",
+                        "Etiquetas de inicio", "Colecciones de la sesión", "Conexión"}
+                : new String[]{"Tamaño de miniaturas", "Encuadre de miniaturas", "Actualizar publicaciones",
+                        "Colecciones", "Conexión"};
         GalleryUi.menu(this, SourceId.label(state.key), labels, index -> {
             if (index == 0) chooseTileSize();
-            else if (index == 1) submit(true);
-            else if (gelbooru && index == 2) showHomeTags();
+            else if (index == 1) chooseThumbnailFit();
+            else if (index == 2) submit(true);
+            else if (gelbooru && index == 3) showHomeTags();
             else if (index == labels.length - 1) setup();
             else showCollections();
         });
+    }
+
+    private void chooseThumbnailFit() {
+        android.app.AlertDialog dialog = new SecureDialogs.Builder(this).setTitle("Encuadre de miniaturas")
+                .setSingleChoiceItems(new String[]{"Llenar la casilla", "Ver imagen completa"},
+                        fitThumbnails ? 1 : 0, (picker, selected) -> {
+                            picker.dismiss();
+                            if (!ready() || fitThumbnails == (selected == 1)) return;
+                            fitThumbnails = selected == 1;
+                            persist();
+                            if (adapter == null) return;
+                            int first = grid.getFirstVisiblePosition();
+                            int top = grid.getChildCount() == 0 ? 0 : grid.getChildAt(0).getTop();
+                            adapter.setFitThumbnails(fitThumbnails);
+                            if (grid.getChildCount() > 0) restoreGrid(first, top);
+                        }).setNegativeButton("Cerrar", null).create();
+        trackPrivateDialog(dialog);
+        dialog.show();
     }
 
     private void chooseTileSize() {
@@ -338,8 +372,8 @@ public final class WebLibraryActivity extends SecureActivity {
         trackPrivateDialog(dialog);
         dialog.show();
         dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener(view -> {
-            String value = normalized(tags.getText().toString());
-            if (!validTags(value)) {
+            String value = WebTags.normalized(tags.getText().toString());
+            if (!WebTags.valid(value)) {
                 tags.setError("Usa hasta ocho etiquetas separadas por espacios.");
                 return;
             }
@@ -441,9 +475,9 @@ public final class WebLibraryActivity extends SecureActivity {
                     paintControls();
                     return;
                 }
-                if (pendingTag != null) {
-                    setTerms(pendingTag);
-                    pendingTag = null;
+                if (pendingQuery != null) {
+                    setTerms(pendingQuery);
+                    pendingQuery = null;
                     submit(true);
                 } else if (gelbooru && session != existing) {
                     collection = 0;
@@ -469,30 +503,14 @@ public final class WebLibraryActivity extends SecureActivity {
 
     @Override protected void onActivityResult(int code, int result, Intent data) {
         super.onActivityResult(code, result, data);
-        if (code == VIEWER && result == RESULT_OK && data != null) pendingTag = data.getStringExtra("web-tag");
-    }
-
-    private static String normalized(String text) {
-        return text.trim().replaceAll("\\s+", " ");
-    }
-
-    private static boolean validTags(String value) {
-        if (value.isEmpty()) return true;
-        String[] words = value.split(" ");
-        if (words.length > 8) return false;
-        boolean positive = false;
-        for (String word : words) {
-            if (!word.matches("-?[\\p{L}\\p{N}_().+'!?-]{1,80}") || "-".equals(word)) return false;
-            if (!word.startsWith("-")) positive = true;
-        }
-        return positive;
+        if (code == VIEWER && result == RESULT_OK && data != null) pendingQuery = data.getStringExtra("web-query");
     }
 
     private void submit(boolean committed) {
         handler.removeCallbacks(delayedSearch);
         if (!ready() || !enabled) return;
-        String value = normalized(terms.getText().toString());
-        if (!validTags(value)) {
+        String value = WebTags.normalized(terms.getText().toString());
+        if (!WebTags.valid(value)) {
             notice("Usa de una a ocho etiquetas separadas por espacios.");
             return;
         }
@@ -534,7 +552,7 @@ public final class WebLibraryActivity extends SecureActivity {
 
     private void loadNearEnd() {
         if (!ready() || checking || rendering || !enabled || request != null || collection != 0
-                || adapter == null || nextPage < 0 || !pageError.isEmpty() || sparsePages >= MAX_SPARSE_PAGES) return;
+                || adapter == null || nextPage < 0 || !pageError.isEmpty() || sparsePages >= WebCatalogue.PAGE_SCAN_LIMIT) return;
         int count = adapter.getCount();
         int visible = grid.getChildCount();
         if (count == 0 || (visible > 0 && count - grid.getFirstVisiblePosition() - visible <= 2 * columns())) {
@@ -553,7 +571,6 @@ public final class WebLibraryActivity extends SecureActivity {
         CancellationSignal signal = new CancellationSignal();
         request = signal;
         String key = queryKey();
-        String tags = gelbooru && query.isEmpty() ? homeTags : query;
         int page = first ? 0 : nextPage;
         if (adapter == null || adapter.getCount() == 0) notice(query.isEmpty() && first ? "Cargando recientes…" : "Buscando publicaciones…");
         else notice("");
@@ -561,9 +578,7 @@ public final class WebLibraryActivity extends SecureActivity {
         origin.database.execute(() -> {
             String problem = "";
             try {
-                WebSource.Result result = ((WebSource) origin.source).search(tags, page, signal);
-                signal.throwIfCanceled();
-                origin.webCatalogue.store(key, page, result, origin.liveId != null);
+                WebCatalogue.fetchPage(origin, key, page, signal);
             } catch (Exception failure) {
                 problem = WebSource.message(failure);
             }
@@ -622,6 +637,7 @@ public final class WebLibraryActivity extends SecureActivity {
                     } else {
                         closeGrid();
                         adapter = new PagedAdapter(this, origin, filter, count);
+                        adapter.setFitThumbnails(fitThumbnails);
                         adapter.replaceWebWindow(count, pageStart, window);
                         grid.setAdapter(adapter);
                     }
@@ -630,7 +646,7 @@ public final class WebLibraryActivity extends SecureActivity {
                     if (filter.webQuery != null && !pageError.isEmpty()) notice(pageError);
                     else if (count > 0) notice("");
                     else if (!gelbooru && query.isEmpty() && collection == 0) notice("Busca por etiquetas para explorar.");
-                    else if (next >= 0 && sparsePages < MAX_SPARSE_PAGES) notice("Buscando publicaciones…");
+                    else if (next >= 0 && sparsePages < WebCatalogue.PAGE_SCAN_LIMIT) notice("Buscando publicaciones…");
                     else if (next > 0) notice("Aún no hay coincidencias en las páginas revisadas.");
                     else notice("No hay publicaciones en esta vista.");
                     paintControls();
@@ -690,7 +706,8 @@ public final class WebLibraryActivity extends SecureActivity {
         try {
             android.content.SharedPreferences.Editor edit = state.preferences.edit()
                     .putInt("web-filter-type", type).putInt("web-filter-shape", shape)
-                    .putInt("web-filter-watched", watched).putInt("web-tile-size", tileSize);
+                    .putInt("web-filter-watched", watched).putInt("web-tile-size", tileSize)
+                    .putBoolean("web-fit-thumbnails", fitThumbnails);
             if (!gelbooru) edit.putString("web-query", query).putInt("web-collection", collection);
             edit.apply();
         } catch (RuntimeException unavailable) { notice("No se pudieron guardar los ajustes."); }
@@ -702,6 +719,7 @@ public final class WebLibraryActivity extends SecureActivity {
                 : query.isEmpty() ? gelbooru ? "Recientes" : "Biblioteca" : "Resultados");
         boolean available = enabled && !checking;
         search.setEnabled(available);
+        savedSearches.setEnabled(available);
         clear.setEnabled(available);
         terms.setEnabled(available);
         ((View) connect.getParent()).setVisibility(enabled || checking ? View.GONE : View.VISIBLE);
@@ -715,7 +733,7 @@ public final class WebLibraryActivity extends SecureActivity {
         progress.setVisibility(checking || request != null ? View.VISIBLE : View.INVISIBLE);
         boolean failed = !pageError.isEmpty();
         boolean offer = available && idle && collection == 0
-                && (failed || (nextPage > 0 && sparsePages >= MAX_SPARSE_PAGES));
+                && (failed || (nextPage > 0 && sparsePages >= WebCatalogue.PAGE_SCAN_LIMIT));
         retry.setText(failed ? "Reintentar" : "Seguir buscando");
         ((View) retry.getParent()).setVisibility(offer ? View.VISIBLE : View.GONE);
     }
