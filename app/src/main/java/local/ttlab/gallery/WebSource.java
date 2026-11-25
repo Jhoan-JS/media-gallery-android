@@ -44,7 +44,7 @@ final class WebSource extends Source {
 
     @Override void guard() throws Exception {
         super.guard();
-        if (gelbooru && packages.getPackageInfo(PACKAGE, 0).getLongVersionCode() < 4) {
+        if (gelbooru && packages.getPackageInfo(PACKAGE, 0).getLongVersionCode() < 5) {
             throw new IOException("E_WEB_UPDATE");
         }
     }
@@ -193,10 +193,36 @@ final class WebSource extends Source {
         return builder.build();
     }
 
-    static String message(Exception failure) {
-        String code = failure.getMessage();
-        if (code == null) code = "";
-        if (code.contains("E_WEB_UPDATE")) return "Actualiza Conector Web a la versión 1.3 o posterior para usar Gelbooru.";
+    static boolean isMediaGate(Throwable failure) {
+        return "E_WEB_MEDIA_GATE".equals(errorCode(failure));
+    }
+
+    private static String errorCode(Throwable failure) {
+        for (int depth = 0; failure != null && depth < 8; depth++, failure = failure.getCause()) {
+            String message = failure.getMessage();
+            if (message == null) continue;
+            java.util.regex.Matcher code = java.util.regex.Pattern.compile("\\bE_WEB_[A-Z0-9_]{1,30}\\b").matcher(message);
+            if (code.find()) return code.group();
+        }
+        return "";
+    }
+
+    static String message(Throwable failure) {
+        String code = errorCode(failure);
+        if (code.equals("E_WEB_MEDIA_GATE")) return "Gelbooru redirigió el archivo a su página. Puedes abrir la publicación oficial.";
+        if (code.equals("E_WEB_MEDIA_REDIRECT")) return "El servidor redirigió el archivo fuera de las rutas de medios admitidas.";
+        if (code.equals("E_WEB_API_REDIRECT")) return "El sitio redirigió la consulta del catálogo. Comprueba la conexión de la fuente.";
+        if (code.equals("E_WEB_CATALOGUE_FORMAT")) return "No se reconoció la respuesta del catálogo. Código WEB-FORMATO.";
+        if (code.equals("E_WEB_CATALOGUE_MEDIA")) return "El catálogo respondió, pero esta página no incluye enlaces de medios compatibles. Código WEB-ENLACES.";
+        if (code.equals("E_WEB_CATALOGUE")) return "El sitio rechazó la consulta del catálogo. Código WEB-CATÁLOGO.";
+        if (code.startsWith("E_WEB_HTTP_")) return "El sitio respondió con HTTP " + code.substring("E_WEB_HTTP_".length()) + ".";
+        if (code.equals("E_WEB_MISSING")) return "El sitio no encontró la publicación o el archivo.";
+        if (code.equals("E_WEB_MEDIA_TYPE")) return "El enlace del archivo no devolvió un formato multimedia compatible.";
+        if (code.equals("E_WEB_SIZE") || code.equals("E_WEB_IMAGE_SIZE")) return "El archivo supera el límite de lectura en memoria.";
+        if (code.equals("E_WEB_CHANGED") || code.equals("E_WEB_REOPEN")) return "El archivo cambió o la vista caducó. Regresa a la lista y ábrelo de nuevo.";
+        if (code.equals("E_WEB_NETWORK")) return "No se pudo conectar al sitio. Código WEB-RED.";
+        if (code.equals("E_WEB_RANGE")) return "El servidor no entregó el tramo solicitado del archivo. Código WEB-TRAMOS.";
+        if (code.contains("E_WEB_UPDATE")) return "Actualiza Conector Web a la versión 1.4 o posterior para usar Gelbooru.";
         if (code.contains("E_WEB_NO_RANGES")) return "El servidor no permite adelantar este video.";
         if (code.contains("E_WEB_LIMIT") || code.contains("E_WEB_BUSY")) return "El sitio limitó las solicitudes. Espera y reintenta.";
         if (code.contains("E_WEB_LIVE_CLIENT")) return "Vuelve a abrir Gelbooru para renovar la sesión.";
@@ -206,6 +232,7 @@ final class WebSource extends Source {
         if (code.contains("E_WEB_DISABLED") || code.contains("E_WEB_CONNECTOR")) return "Habilita la fuente en Conector Web.";
         if (code.contains("E_WEB_TAGS")) return "Usa de una a ocho etiquetas. Separa los términos con espacios.";
         if (code.contains("E_WEB_ACCOUNT")) return "La fuente vinculada cambió. Revisa la configuración.";
-        return "No se pudo completar la lectura web. Vuelve a intentarlo.";
+        return code.isEmpty() ? "No se pudo abrir el archivo web. Código WEB-LECTURA."
+                : "No se pudo leer la respuesta del sitio. Código " + code + ".";
     }
 }

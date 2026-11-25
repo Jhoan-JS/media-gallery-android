@@ -26,7 +26,7 @@ final class WebPolicy {
                 uri.getRawQuery() != null || uri.getRawPath().length() < 2) {
             throw new IllegalArgumentException("E_WEB_MEDIA_URL");
         }
-        if (site == WebSite.GELBOORU && !uri.getRawPath().matches("/(?:images|thumbnails|samples|videos)/[^?#]+")) {
+        if (site == WebSite.GELBOORU && !uri.getRawPath().matches("/{1,2}(?:images|thumbnails|samples|videos)/[^?#]+")) {
             throw new IllegalArgumentException("E_WEB_MEDIA_URL");
         }
         return uri;
@@ -40,7 +40,7 @@ final class WebPolicy {
     static String query(WebSite site, String input) {
         if (input == null) throw new IllegalArgumentException("E_WEB_TAGS");
         String tags = input.trim();
-        if (site == WebSite.GELBOORU && tags.isEmpty()) return "sort:id:desc";
+        if (site == WebSite.GELBOORU && tags.isEmpty()) return "";
         if (tags.length() > 320 || tags.isEmpty()) throw new IllegalArgumentException("E_WEB_TAGS");
         String[] words = tags.split("\\s+");
         if (words.length > 8) throw new IllegalArgumentException("E_WEB_TAGS");
@@ -53,7 +53,13 @@ final class WebPolicy {
         }
         if (!positive) throw new IllegalArgumentException("E_WEB_TAGS");
         String query = String.join(" ", words);
-        return query + (site == WebSite.GELBOORU ? " sort:id:desc" : " " + site.requiredRatingTag);
+        return site.requiredRatingTag.isEmpty() ? query : query + " " + site.requiredRatingTag;
+    }
+
+    static boolean gelbooruGate(URI destination) {
+        return "https".equals(destination.getScheme()) && "gelbooru.com".equals(destination.getHost())
+                && destination.getPort() == -1 && destination.getRawUserInfo() == null
+                && "/hotlink.php".equals(destination.getPath());
     }
 
     static String mime(URI uri) {

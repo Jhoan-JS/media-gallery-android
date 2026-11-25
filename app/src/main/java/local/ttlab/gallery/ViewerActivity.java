@@ -40,6 +40,7 @@ public final class ViewerActivity extends SecureActivity {
     private PlaybackWatch watch=new PlaybackWatch();
     private volatile Item item;private VideoPlayer player;private MediaDataSource video;private boolean loading,loadFailed,prepared,surfaceReady;private volatile boolean closed;
     private android.os.CancellationSignal webPrepare;
+    private Button openOfficialPost;
     private Future<?> lookupWork,mediaWork,prepareWork,neighborWork,thumbnailWork;private volatile int thumbnailEpoch,epoch;private volatile boolean previewActive;private Runnable loadTimeout;
     private final Runnable tick=new Runnable(){public void run(){if(player!=null&&prepared&&!awaitingSeek){try{int position=player.getCurrentPosition();if(!dragging){seek.setProgress(position);elapsed(position);}observePlayback(position,player.isPlaying()&&!buffering&&!dragging);long now=android.os.SystemClock.elapsedRealtime();if(now-lastCheckpoint>=5000){persistPlayback();lastCheckpoint=now;}}catch(IllegalStateException ignored){}}if(!closed&&previewActive)handler.postDelayed(this,500);}};
     private final Runnable hideControls=()->{if(player!=null&&prepared&&!dragging&&previewActive&&!touchExploration())try{if(player.isPlaying())setControlsVisible(false);}catch(IllegalStateException ignored){}};
@@ -64,7 +65,15 @@ public final class ViewerActivity extends SecureActivity {
             public void onStopTrackingTouch(SeekBar s){dragging=false;clearScrubPreview();watch.resetSample();if(player!=null&&prepared&&!awaitingSeek)try{playbackCompleted=false;player.seekTo(s.getProgress(),MediaPlayer.SEEK_CLOSEST_SYNC);}catch(IllegalStateException error){showError();}showControls();}
             public void onProgressChanged(SeekBar s,int p,boolean user){if(user){elapsed(p);if(dragging)showScrubPreview(p);}}
         });
-        status=GalleryUi.text(this,"Cargando archivo…",12,getColor(R.color.gallery_muted));status.setMaxLines(4);status.setPadding(dp(16),dp(4),dp(16),dp(8));status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);footer.addView(status);videoOverlay.addView(footer,new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM));
+        status=GalleryUi.text(this,"Cargando archivo…",12,getColor(R.color.gallery_muted));status.setMaxLines(4);status.setPadding(dp(16),dp(4),dp(16),dp(8));status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);footer.addView(status);
+        if(WebSource.GELBOORU.equals(state.key)){
+            openOfficialPost=GalleryUi.button(this,"Abrir en Gelbooru",false);
+            openOfficialPost.setVisibility(View.GONE);
+            openOfficialPost.setOnClickListener(v->openGelbooruPost());
+            LinearLayout.LayoutParams link=new LinearLayout.LayoutParams(-1,dp(48));link.setMargins(dp(16),0,dp(16),dp(8));
+            footer.addView(openOfficialPost,link);
+        }
+        videoOverlay.addView(footer,new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM));
         scrubPreview=new ImageView(this);
         scrubPreview.setTag("scrub-preview-frame");
         scrubPreview.setBackground(GalleryUi.background(0xe6101717,dp(8)));
@@ -341,6 +350,7 @@ public final class ViewerActivity extends SecureActivity {
     @Override void onUnlocked(){if(previewActive)load();}
     private void load(){
         if(closed||!previewActive||state==null||!state.unlocked)return;
+        if(openOfficialPost!=null)openOfficialPost.setVisibility(View.GONE);
         undo.clear();persistPlayback();cancelRequest();releaseVideo();loadStarted=android.os.SystemClock.elapsedRealtime();readyMillis=frameMillis=-1;final int generation=epoch;final int channel=currentChannel,id=currentId;final State origin=state;
         item=null;flagEdits.clear();before=after=null;openedQueued=false;viewedQueued=false;watch=new PlaybackWatch();loading=true;loadFailed=false;awaitingSeek=false;image.clear();surface.setVisibility(View.GONE);image.setVisibility(View.VISIBLE);gestureLayer.setVisibility(View.GONE);centerControls.setVisibility(View.GONE);transport.setVisibility(View.GONE);progress.setVisibility(View.VISIBLE);skipFeedback.setVisibility(View.GONE);title.setText("Archivo");status.setMaxLines(2);status.setText("Cargando archivo…");status.setVisibility(View.VISIBLE);showControls();
         loadTimeout=()->{if(!closed&&epoch==generation&&loading){if(webPrepare!=null)webPrepare.cancel();cancel(mediaWork);cancel(prepareWork);showError();}};handler.postDelayed(loadTimeout,30000);
@@ -354,7 +364,7 @@ public final class ViewerActivity extends SecureActivity {
             }
             if(found==null)throw new java.io.IOException("Archivo no disponible");Library.Flags flags=origin.library.flags(found);float speed;try{speed=PlayerControls.speed(Float.parseFloat(origin.library.setting("player-speed","1")));}catch(NumberFormatException invalid){speed=1;}final float selectedSpeed=speed;boolean viewed=found.video()&&origin.library.viewed(found),offline=found.video()&&origin.library.offline(found);
             runOnUiThread(()->{if(closed||!previewActive||!origin.unlocked||epoch!=generation)return;item=found;savedVideo=offline;playbackSpeed=selectedSpeed;favoriteValue=flags.favorite;laterValue=flags.later;archivedValue=flags.archived;resumePosition=PlaybackProgress.resume(flags.position,flags.duration,flags.completed);playbackCompleted=flags.completed;viewedQueued=viewed;title.setText(found.label());status.setText(metadata());resolveNeighbors();if(found.video()){image.setVisibility(View.GONE);surface.setVisibility(View.VISIBLE);gestureLayer.setVisibility(View.VISIBLE);centerControls.setVisibility(View.VISIBLE);transport.setVisibility(View.VISIBLE);seek.setVisibility(View.VISIBLE);startVideo();}else{fitImage();decodeImage(found,generation,origin);}});
-        }catch(Exception error){runOnUiThread(()->{if(!closed&&previewActive&&epoch==generation){showError();if(remote!=null)status.setText(WebSource.message(error));}});}});
+        }catch(Exception error){runOnUiThread(()->{if(!closed&&previewActive&&epoch==generation){showError(error);}});}});
     }
     private void decodeImage(Item opened,int generation,State origin){
         mediaWork=worker.submit(()->{try{
@@ -366,7 +376,7 @@ public final class ViewerActivity extends SecureActivity {
             Bitmap bitmap;try(InputStream input=origin.media.input(opened)){bitmap=BitmapFactory.decodeStream(input,null,options);}if(bitmap==null)throw new java.io.IOException("Formato no compatible");
             if(!current(generation,opened)){bitmap.recycle();return;}try{origin.media.remember(opened,bitmap);}catch(Exception thumbnailOnly){}
             runOnUiThread(()->{if(current(generation,opened)){image.show(bitmap);readyMillis=android.os.SystemClock.elapsedRealtime()-loadStarted;status.setVisibility(View.GONE);loading=false;clearLoadTimeout();progress.setVisibility(View.GONE);notifyOpened();}else bitmap.recycle();});
-        }catch(Exception error){runOnUiThread(()->{if(current(generation,opened))showError();});}});
+        }catch(Exception error){runOnUiThread(()->{if(current(generation,opened))showError(error);});}});
     }
     private void resolveNeighbors(){
         if(item==null||closed)return;cancel(neighborWork);final Item opened=item;final int generation=epoch;final State origin=state;final MediaFilter snapshot=filter.copy();final long[] sequence=keys;before=after=null;
@@ -428,7 +438,24 @@ public final class ViewerActivity extends SecureActivity {
     private void elapsed(int position){String value=time(position);currentTime.setText(value);currentTime.setContentDescription("Tiempo transcurrido: "+value);}
     private void playIcon(boolean playing){surface.setKeepScreenOn(playing&&previewActive);play.setImageResource(playing?R.drawable.ic_viewer_pause:R.drawable.ic_viewer_play);play.setContentDescription(playing?"Pausar":"Reproducir");}
     private static String time(int milliseconds){int seconds=Math.max(0,milliseconds/1000),hours=seconds/3600,minutes=seconds/60%60;return hours>0?String.format(java.util.Locale.getDefault(),"%d:%02d:%02d",hours,minutes,seconds%60):String.format(java.util.Locale.getDefault(),"%d:%02d",seconds/60,seconds%60);}
-    private void showError(){if(closed)return;Throwable failure=video instanceof BufferedMediaSource?((BufferedMediaSource)video).failure():null;persistPlayback();cancelRequest();releaseVideo();loading=false;loadFailed=true;progress.setVisibility(View.GONE);status.setMaxLines(4);status.setVisibility(View.VISIBLE);status.setText(ConnectionMessage.describe(failure,Profiles.owner(),state.key));showControls();handler.removeCallbacks(hideControls);}
+    private void showError(){showError(null);}
+    private void showError(Throwable cause){
+        if(closed)return;
+        Throwable failure=cause!=null?cause:video instanceof BufferedMediaSource?((BufferedMediaSource)video).failure():null;
+        persistPlayback();cancelRequest();releaseVideo();loading=false;loadFailed=true;progress.setVisibility(View.GONE);
+        status.setMaxLines(4);status.setVisibility(View.VISIBLE);
+        status.setText(SourceId.web(state.key)?WebSource.message(failure):ConnectionMessage.describe(failure,Profiles.owner(),state.key));
+        if(openOfficialPost!=null)openOfficialPost.setVisibility(WebSource.isMediaGate(failure)?View.VISIBLE:View.GONE);
+        showControls();handler.removeCallbacks(hideControls);
+    }
+    private void openGelbooruPost(){
+        if(!previewActive||!state.unlocked||openOfficialPost==null||!openOfficialPost.isShown()||currentId<1)return;
+        android.net.Uri target=new android.net.Uri.Builder().scheme("https").authority("gelbooru.com")
+                .appendPath("index.php").appendQueryParameter("page","post").appendQueryParameter("s","view")
+                .appendQueryParameter("id",Integer.toString(currentId)).build();
+        try{startActivity(new Intent(Intent.ACTION_VIEW,target).addCategory(Intent.CATEGORY_BROWSABLE));}
+        catch(android.content.ActivityNotFoundException unavailable){status.setText("No hay un navegador disponible para abrir la publicación.");}
+    }
     private static void cancel(Future<?> work){if(work!=null)work.cancel(true);}
     private void clearLoadTimeout(){if(loadTimeout!=null)handler.removeCallbacks(loadTimeout);loadTimeout=null;}
     private void cancelRequest(){stopBoost();epoch++;if(webPrepare!=null){webPrepare.cancel();webPrepare=null;}cancelFrame(coverWork);coverWork=null;cancel(lookupWork);cancel(mediaWork);cancel(prepareWork);cancel(neighborWork);clearLoadTimeout();cancelVideoThumbnail();handler.removeCallbacks(hideSkipFeedback);}

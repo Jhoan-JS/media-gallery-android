@@ -223,7 +223,7 @@ public final class WebProvider extends ContentProvider {
 
     private static String error(Exception failure) {
         String message = failure.getMessage();
-        if (message != null && message.matches("E_WEB_[A-Z_]{1,30}")) return message;
+        if (message != null && message.matches("E_WEB_[A-Z0-9_]{1,30}")) return message;
         if (failure instanceof android.os.OperationCanceledException) return "E_WEB_CANCELED";
         if (failure instanceof SecurityException) return "E_WEB_CALLER";
         if (failure instanceof IOException) return "E_WEB_NETWORK";

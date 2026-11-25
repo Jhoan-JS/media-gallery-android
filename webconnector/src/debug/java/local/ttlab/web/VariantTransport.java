@@ -27,7 +27,7 @@ final class VariantTransport {
         private final URI uri;
         private byte[] file;
         private int start, count, status;
-        private String type, range, etag;
+        private String type, range, etag, location;
 
         FixtureConnection(Context context, URI uri) throws IOException {
             super(uri.toURL());
@@ -38,12 +38,32 @@ final class VariantTransport {
         @Override public void connect() throws IOException {
             if (connected) return;
             if (isApi()) {
-                file = json().getBytes(StandardCharsets.UTF_8);
-                type = "application/json";
+                file = catalogue().getBytes(StandardCharsets.UTF_8);
+                type = "gelbooru.com".equals(uri.getHost()) ? "text/xml" : "application/json";
                 status = 200;
                 Log.i("GalleryWebFixture", "Synthetic search response");
             } else {
                 String name = uri.getPath();
+                if (name.endsWith("/297.png") || name.endsWith("/297-thumb.png")) {
+                    status = 302;
+                    location = "https://gelbooru.com/hotlink.php?hash=synthetic";
+                    connected = true;
+                    return;
+                }
+                if ("img3.gelbooru.com".equals(uri.getHost()) && name.endsWith("/299.png")) {
+                    status = 302;
+                    location = "https://img4.gelbooru.com/images/299.png";
+                    connected = true;
+                    return;
+                }
+                if ("/hotlink.php".equals(name)) {
+                    Log.e("GalleryWebFixture", "Unexpected request to hotlink page");
+                    throw new IOException("Protected redirect was followed");
+                }
+                if (name.endsWith("/299-preview.png")) Log.i("GalleryWebFixture", "Sample preview received");
+                if ("img4.gelbooru.com".equals(uri.getHost()) && name.endsWith("/299.png")) {
+                    Log.i("GalleryWebFixture", "Allowed CDN redirect reached original image");
+                }
                 String asset = name.endsWith(".mp4") ? "fixture.mp4" : "fixture.png";
                 type = name.endsWith(".mp4") ? "video/mp4" : "image/png";
                 file = ASSETS.get(asset);
@@ -51,7 +71,9 @@ final class VariantTransport {
                     try (InputStream in = context.getAssets().open(asset)) { file = in.readAllBytes(); }
                     ASSETS.put(asset, file);
                 }
-                etag = "\"synthetic-" + asset + "-v1\"";
+                if (asset.equals("fixture.mp4") || !uri.getHost().endsWith(".gelbooru.com")) {
+                    etag = "\"synthetic-" + asset + "-v1\"";
+                }
                 String request = getRequestProperty("Range");
                 status = 200;
                 if (request != null) {
@@ -72,7 +94,7 @@ final class VariantTransport {
                     && "/index.php".equals(uri.getPath());
         }
 
-        private String json() throws IOException {
+        private String catalogue() throws IOException {
             Uri target = Uri.parse(uri.toASCIIString());
             String id = target.getQueryParameter("id");
             String tags = target.getQueryParameter("tags");
@@ -81,8 +103,8 @@ final class VariantTransport {
                 boolean gelbooru = "gelbooru.com".equals(uri.getHost());
                 String expectedTag = gelbooru ? "fixture_gelbooru" : "fixture_gallery";
                 if (gelbooru) {
-                    if ((id == null && (tags == null || tags.contains("rating:")))
-                            || (id != null && tags != null)
+                    if ((id == null && (tags == null || tags.contains("rating:") || tags.contains("sort:")))
+                            || (id != null && tags != null) || target.getQueryParameter("json") != null
                             || !"gel_fixture_key".equals(target.getQueryParameter("api_key"))) {
                         throw new IOException("Unexpected Gelbooru fixture parameters");
                     }
@@ -91,30 +113,42 @@ final class VariantTransport {
                 }
                 JSONArray rows = new JSONArray();
                 if (id != null) rows.put(row(Integer.parseInt(id), gelbooru));
-                else if (gelbooru ? tags.endsWith("sort:id:desc") : tags.contains(expectedTag)) {
-                    int queryOffset = gelbooru && tags.startsWith("fixture_home ") ? 100
-                            : gelbooru && tags.startsWith("fixture_search ") ? 200 : 0;
+                else if (gelbooru || tags.contains(expectedTag)) {
+                    int queryOffset = gelbooru && tags.startsWith("fixture_home") ? 100
+                            : gelbooru && tags.startsWith("fixture_search") ? 200 : 0;
                     int high = "0".equals(page) ? 100 : 70;
                     int low = "0".equals(page) ? 71 : 63;
                     for (int n = high; n >= low; n--) rows.put(row(n + queryOffset, gelbooru));
                 }
                 if (!gelbooru) return rows.toString();
-                JSONObject envelope = new JSONObject().put("@attributes", new JSONObject()
-                        .put("count", rows.length() == 0 ? 0 : 38).put("offset", "1".equals(page) ? 30 : 0));
-                if (rows.length() > 0) envelope.put("post", rows);
-                return envelope.toString();
+                StringBuilder xml = new StringBuilder("<?xml version=\"1.0\"?><posts count=\"")
+                        .append(rows.length() == 0 ? 0 : 38).append("\" offset=\"")
+                        .append("1".equals(page) ? 30 : 0).append("\">");
+                for (int index = 0; index < rows.length(); index++) {
+                    JSONObject post = rows.getJSONObject(index);
+                    xml.append("<post");
+                    java.util.Iterator<String> fields = post.keys();
+                    while (fields.hasNext()) {
+                        String field = fields.next();
+                        xml.append(" ").append(field).append("=\"")
+                                .append(android.text.TextUtils.htmlEncode(post.getString(field))).append("\"");
+                    }
+                    xml.append("/>");
+                }
+                return xml.append("</posts>").toString();
             } catch (Exception invalid) { throw new IOException("Fixture failed"); }
         }
 
         private static JSONObject row(int id, boolean gelbooru) throws Exception {
-            String origin = gelbooru ? "https://img3.gelbooru.com/images/" : "https://api-cdn.rule34.xxx/test/";
+            String origin = gelbooru ? "https://img3.gelbooru.com//images/" : "https://api-cdn.rule34.xxx/test/";
             String[] labels = {"general", "sensitive", "questionable", "explicit"};
             String rating = gelbooru ? labels[(100 - id) & 3] : "safe";
             String tags = gelbooru ? "fixture_gelbooru blue_sky" : "fixture_gallery blue_sky";
             return new JSONObject().put("id", id).put("rating", rating).put("change", 1780000000 + id)
                     .put("tags", tags).put("width", 640).put("height", 360)
                     .put("file_url", origin + id + (id % 2 == 0 ? ".mp4" : ".png"))
-                    .put("preview_url", origin + id + "-thumb.png");
+                    .put("preview_url", gelbooru && id == 299 ? "" : origin + id + "-thumb.png")
+                    .put("sample_url", gelbooru && id == 299 ? "https://img3.gelbooru.com//samples/299-preview.png" : "");
         }
 
         @Override public int getResponseCode() throws IOException { connect(); return status; }
@@ -127,6 +161,7 @@ final class VariantTransport {
         @Override public String getHeaderField(String key) {
             if ("Cache-Control".equalsIgnoreCase(key) && uri.getHost().endsWith(".gelbooru.com")) return "private, no-store";
             if ("Cache-Control".equalsIgnoreCase(key) && "gelbooru.com".equals(uri.getHost())) return "no-store";
+            if ("Location".equalsIgnoreCase(key)) return location;
             if ("ETag".equalsIgnoreCase(key)) return etag;
             if ("Content-Range".equalsIgnoreCase(key)) return range;
             return null;

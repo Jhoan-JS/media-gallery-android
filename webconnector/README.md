@@ -1,6 +1,6 @@
 # Optional Web Connector
 
-Gallery 2.22 and Web Connector 1.3 support Rule34.xxx and Gelbooru. Install both
+Gallery 2.23 and Web Connector 1.4 support Rule34.xxx and Gelbooru. Install both
 APK files in the same Android user with the same signing certificate. Android 12
 or later is required. Telegram Connector 1.1 and the local Tato interface use
 their existing protocols.
@@ -28,6 +28,12 @@ are cleared when that session ends. Startup tags and credentials remain
 encrypted. Rule34.xxx uses its existing encrypted library and cache.
 **Revocar y apagar** removes the selected site's API key and stops its requests.
 Web libraries have no export or permanent downloads.
+
+Gelbooru uses its documented XML catalogue and the media links it returns.
+An approved preview can use the site's sample image when a thumbnail is
+missing. If the site's hotlink protection redirects an asset to its page, the
+viewer offers **Abrir en Gelbooru**, which opens the official post only
+after you choose it.
 
 Playback uses the existing Media3 player. A successful seek requires a
 compatible codec, correct HTTP content ranges, and a stable media version

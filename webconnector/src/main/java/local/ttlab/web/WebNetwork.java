@@ -48,7 +48,7 @@ final class WebNetwork {
         final int id, width, height;
         final long date;
         final String tags, mime, revision;
-        final URI file, thumb;
+        final URI file, thumb, sample;
         Post(WebSite site, JSONObject row) throws Exception {
             id = row.getInt("id");
             if (id <= 0 || !site.acceptsRating(row.optString("rating"))) {
@@ -57,12 +57,8 @@ final class WebNetwork {
             file = WebPolicy.media(site, row.getString("file_url"));
             mime = WebPolicy.mime(file);
             if (mime.isEmpty()) throw new IllegalArgumentException("E_WEB_MEDIA_TYPE");
-            URI preview = null;
-            try {
-                URI candidate = WebPolicy.media(site, row.optString("preview_url"));
-                if (WebPolicy.mime(candidate).startsWith("image/")) preview = candidate;
-            } catch (IllegalArgumentException missing) { /* A preview is optional. */ }
-            thumb = preview;
+            thumb = imageLink(site, row.optString("preview_url"));
+            sample = site == WebSite.GELBOORU ? imageLink(site, row.optString("sample_url")) : null;
             width = Math.max(0, Math.min(16384, row.optInt("width")));
             height = Math.max(0, Math.min(16384, row.optInt("height")));
             long timestamp = 0;
@@ -79,6 +75,13 @@ final class WebNetwork {
             String text = row.optString("tags").replaceAll("[\\p{Cntrl}]", " ");
             tags = text.substring(0, Math.min(2048, text.length()));
             revision = digest(file.toASCIIString());
+        }
+
+        private static URI imageLink(WebSite site, String address) {
+            try {
+                URI candidate = WebPolicy.media(site, address);
+                return WebPolicy.mime(candidate).startsWith("image/") ? candidate : null;
+            } catch (IllegalArgumentException unused) { return null; }
         }
     }
 
@@ -124,8 +127,12 @@ final class WebNetwork {
     Page search(WebSettings.Config config, long generation, String tags, int page,
                 CancellationSignal cancel) throws Exception {
         if (page < 0 || page >= WebPolicy.MAX_PAGES) throw new IllegalArgumentException("E_WEB_PAGE");
-        JSONArray rows = request(config, generation, "tags=" + encode(WebPolicy.query(site, tags)) +
-                "&pid=" + page + "&limit=" + WebPolicy.PAGE_SIZE, cancel);
+        String query = WebPolicy.query(site, tags);
+        String parameters = "pid=" + page + "&limit=" + WebPolicy.PAGE_SIZE;
+        // Gelbooru supports an empty tag query and already orders it newest-first.
+        parameters += "&tags=" + encode(query);
+        WebResponse response = request(config, generation, parameters, cancel);
+        JSONArray rows = response.posts;
         ArrayList<Post> posts = new ArrayList<>();
         Set<Integer> encountered = new HashSet<>();
         for (int index = 0; index < rows.length(); index++) {
@@ -138,6 +145,9 @@ final class WebNetwork {
                 // Unsupported or unclassified entries do not leave the connector.
             }
         }
+        if (site == WebSite.GELBOORU && rows.length() > 0 && posts.isEmpty()) {
+            throw new IOException("E_WEB_CATALOGUE_MEDIA");
+        }
         synchronized (this) {
             current(generation);
             if (site == WebSite.GELBOORU && page == 0) {
@@ -146,7 +156,7 @@ final class WebNetwork {
             }
             for (Post post : posts) remember(post);
         }
-        return new Page(posts, rows.length() == WebPolicy.PAGE_SIZE && page + 1 < WebPolicy.MAX_PAGES);
+        return new Page(posts, response.more() && page + 1 < WebPolicy.MAX_PAGES);
     }
 
     Post lookup(WebSettings.Config config, long generation, int id, String revision,
@@ -159,7 +169,7 @@ final class WebNetwork {
         if (post == null) {
             String parameters = "id=" + id + "&limit=1";
             if (!site.requiredRatingTag.isEmpty()) parameters += "&tags=" + encode(site.requiredRatingTag);
-            JSONArray rows = request(config, generation, parameters, cancel);
+            JSONArray rows = request(config, generation, parameters, cancel).posts;
             if (rows.length() != 1) throw new IOException("E_WEB_MISSING");
             post = new Post(site, rows.getJSONObject(0));
             if (post.id != id) throw new IOException("E_WEB_MISSING");
@@ -177,31 +187,31 @@ final class WebNetwork {
         if (known.size() > 512) known.remove(known.keySet().iterator().next());
     }
 
-    private JSONArray request(WebSettings.Config config, long generation, String parameters,
+    private WebResponse request(WebSettings.Config config, long generation, String parameters,
                               CancellationSignal cancel) throws Exception {
         awaitSlot(generation, cancel, true);
-        URI url = URI.create(site.api + "?page=dapi&s=post&q=index&json=1&" + parameters
+        String format = site == WebSite.GELBOORU ? "" : "&json=1";
+        URI url = URI.create(site.api + "?page=dapi&s=post&q=index" + format + "&" + parameters
                 + "&user_id=" + encode(config.user) + "&api_key=" + encode(config.key));
         try (Exchange exchange = open(url, generation, cancel)) {
             HttpURLConnection connection = exchange.connection;
-            connection.setRequestProperty("Accept", "application/json");
+            connection.setRequestProperty("Accept", site == WebSite.GELBOORU ? "application/xml, text/xml, application/json" : "application/json");
             int status = connection.getResponseCode();
             checkStatus(connection, status, true);
-            if (status != 200) throw new IOException("E_WEB_API");
+            if (status != 200) throw new IOException("E_WEB_HTTP_" + status);
             checkCachePolicy(connection);
             String payload = new String(read(connection, 2 * 1024 * 1024, -1, cancel),
                     StandardCharsets.UTF_8).trim();
-            JSONArray rows = site.posts(payload);
-            if (rows.length() > WebPolicy.PAGE_SIZE) throw new IOException("E_WEB_API");
-            return rows;
+            return WebResponse.parse(site, payload);
         }
     }
 
     Representation describe(Post post, long generation, CancellationSignal cancel) throws Exception {
-        awaitSlot(generation, cancel, false);
-        try (Exchange exchange = open(post.file, generation, cancel)) {
+        if (site == WebSite.GELBOORU && post.mime.startsWith("image/")) {
+            synchronized (imageLock) { return loadGelbooruImage(post, generation, cancel); }
+        }
+        try (Exchange exchange = openMedia(post.file, generation, cancel, "bytes=0-0", null)) {
             HttpURLConnection connection = exchange.connection;
-            connection.setRequestProperty("Range", "bytes=0-0");
             int status = connection.getResponseCode();
             checkStatus(connection, status, false);
             validateType(connection, post.mime);
@@ -229,11 +239,9 @@ final class WebNetwork {
             throw new IOException("E_WEB_RANGE");
         }
         if (rep.fullImage) return imageRange(post, rep, generation, offset, length, cancel);
-        awaitSlot(generation, cancel, false);
-        try (Exchange exchange = open(post.file, generation, cancel)) {
+        String requestedRange = "bytes=" + offset + "-" + (offset + length - 1);
+        try (Exchange exchange = openMedia(post.file, generation, cancel, requestedRange, rep.validator)) {
             HttpURLConnection connection = exchange.connection;
-            connection.setRequestProperty("Range", "bytes=" + offset + "-" + (offset + length - 1));
-            connection.setRequestProperty("If-Match", rep.validator);
             int status = connection.getResponseCode();
             checkStatus(connection, status, false);
             validateType(connection, post.mime);
@@ -250,18 +258,24 @@ final class WebNetwork {
             current(generation);
             FullImage image = lastImage;
             if (image == null || image.generation != generation || !image.version.equals(rep.version)) {
-                awaitSlot(generation, cancel, false);
-                try (Exchange exchange = open(post.file, generation, cancel)) {
-                    HttpURLConnection connection = exchange.connection;
-                    connection.setRequestProperty("If-Match", rep.validator);
-                    int status = connection.getResponseCode();
-                    checkStatus(connection, status, false);
-                    validateType(connection, post.mime);
-                    if (status != 200 || !rep.validator.equals(connection.getHeaderField("ETag")) ||
-                            connection.getContentLengthLong() != rep.length) throw new IOException("E_WEB_CHANGED");
-                    byte[] bytes = read(connection, (int) rep.length, (int) rep.length, cancel);
-                    image = new FullImage(generation, rep.version, bytes);
-                    synchronized (this) { current(generation); lastImage = image; }
+                if (site == WebSite.GELBOORU) {
+                    Representation fresh = loadGelbooruImage(post, generation, cancel);
+                    image = lastImage;
+                    if (!rep.version.equals(fresh.version) || image == null || !rep.version.equals(image.version)) {
+                        throw new IOException("E_WEB_CHANGED");
+                    }
+                } else {
+                    try (Exchange exchange = openMedia(post.file, generation, cancel, null, rep.validator)) {
+                        HttpURLConnection connection = exchange.connection;
+                        int status = connection.getResponseCode();
+                        checkStatus(connection, status, false);
+                        validateType(connection, post.mime);
+                        if (status != 200 || !rep.validator.equals(connection.getHeaderField("ETag")) ||
+                                connection.getContentLengthLong() != rep.length) throw new IOException("E_WEB_CHANGED");
+                        byte[] bytes = read(connection, (int) rep.length, (int) rep.length, cancel);
+                        image = new FullImage(generation, rep.version, bytes);
+                        synchronized (this) { current(generation); lastImage = image; }
+                    }
                 }
             }
             cancel.throwIfCanceled();
@@ -269,16 +283,47 @@ final class WebNetwork {
         }
     }
 
+    private Representation loadGelbooruImage(Post post, long generation, CancellationSignal cancel) throws Exception {
+        byte[] bytes;
+        try {
+            bytes = fetchImage(post.file, generation, cancel, 16 * 1024 * 1024);
+        } catch (IOException failure) {
+            if (post.sample == null || post.sample.equals(post.file) || !mayUseAlternative(failure)) throw failure;
+            bytes = fetchImage(post.sample, generation, cancel, 16 * 1024 * 1024);
+        }
+        String version = digest(post.revision + "|image|" + digest(bytes));
+        synchronized (this) {
+            current(generation);
+            lastImage = new FullImage(generation, version, bytes);
+        }
+        return new Representation(bytes.length, "", version, true);
+    }
+
+    private static boolean mayUseAlternative(IOException failure) {
+        return "E_WEB_MISSING".equals(failure.getMessage()) || "E_WEB_SIZE".equals(failure.getMessage())
+                || "E_WEB_MEDIA_TYPE".equals(failure.getMessage());
+    }
+
     byte[] thumbnail(Post post, long generation, CancellationSignal cancel) throws Exception {
-        if (post.thumb == null) throw new IOException("E_WEB_MISSING");
-        awaitSlot(generation, cancel, false);
-        try (Exchange exchange = open(post.thumb, generation, cancel)) {
+        if (post.thumb != null) {
+            try {
+                return fetchImage(post.thumb, generation, cancel, WebPolicy.THUMB);
+            } catch (IOException failure) {
+                if (post.sample == null || post.sample.equals(post.thumb) || !mayUseAlternative(failure)) throw failure;
+            }
+        }
+        if (post.sample == null) throw new IOException("E_WEB_MISSING");
+        return fetchImage(post.sample, generation, cancel, WebPolicy.THUMB);
+    }
+
+    private byte[] fetchImage(URI address, long generation, CancellationSignal cancel, int maximum) throws Exception {
+        try (Exchange exchange = openMedia(address, generation, cancel, null, null)) {
             HttpURLConnection connection = exchange.connection;
             int status = connection.getResponseCode();
             checkStatus(connection, status, false);
-            validateType(connection, WebPolicy.mime(post.thumb));
-            if (status != 200) throw new IOException("E_WEB_THUMBNAIL");
-            return read(connection, WebPolicy.THUMB, -1, cancel);
+            if (status != 200) throw new IOException("E_WEB_HTTP_" + status);
+            validateType(connection, WebPolicy.mime(address));
+            return read(connection, maximum, -1, cancel);
         }
     }
 
@@ -304,7 +349,18 @@ final class WebNetwork {
             }
             throw new IOException("E_WEB_LIMIT");
         }
-        if (status >= 300 && status < 400) throw new IOException("E_WEB_REDIRECT");
+        if (status >= 300 && status < 400) {
+            if (!api && site == WebSite.GELBOORU) {
+                String location = connection.getHeaderField("Location");
+                if (location != null) {
+                    try {
+                        URI target = URI.create(connection.getURL().toString()).resolve(location);
+                        if (WebPolicy.gelbooruGate(target)) throw new IOException("E_WEB_MEDIA_GATE");
+                    } catch (IllegalArgumentException malformed) { /* Report a generic redirect. */ }
+                }
+            }
+            throw new IOException(api ? "E_WEB_API_REDIRECT" : "E_WEB_MEDIA_REDIRECT");
+        }
     }
 
     private void awaitSlot(long generation, CancellationSignal cancel, boolean api) throws IOException {
@@ -326,6 +382,38 @@ final class WebNetwork {
         }
     }
 
+    private Exchange openMedia(URI address, long generation, CancellationSignal cancel, String range, String validator)
+            throws Exception {
+        URI target = address;
+        for (int hop = 0; hop <= 2; hop++) {
+            awaitSlot(generation, cancel, false);
+            Exchange exchange = open(target, generation, cancel);
+            boolean keep = false;
+            try {
+                HttpURLConnection connection = exchange.connection;
+                if (range != null) connection.setRequestProperty("Range", range);
+                if (validator != null) connection.setRequestProperty("If-Match", validator);
+                int status = connection.getResponseCode();
+                if (site != WebSite.GELBOORU || status < 300 || status >= 400) {
+                    keep = true;
+                    return exchange;
+                }
+                String location = connection.getHeaderField("Location");
+                if (location == null || hop == 2) throw new IOException("E_WEB_MEDIA_REDIRECT");
+                try {
+                    URI redirected = target.resolve(location);
+                    if (WebPolicy.gelbooruGate(redirected)) throw new IOException("E_WEB_MEDIA_GATE");
+                    target = WebPolicy.media(site, redirected.toASCIIString());
+                } catch (IllegalArgumentException malformed) {
+                    throw new IOException("E_WEB_MEDIA_REDIRECT");
+                }
+            } finally {
+                if (!keep) exchange.close();
+            }
+        }
+        throw new IOException("E_WEB_MEDIA_REDIRECT");
+    }
+
     private Exchange open(URI uri, long generation, CancellationSignal cancel) throws Exception {
         cancel.throwIfCanceled();
         HttpURLConnection connection = VariantTransport.open(context, uri);
@@ -334,7 +422,7 @@ final class WebNetwork {
         connection.setConnectTimeout(7000);
         connection.setReadTimeout(9000);
         connection.setRequestProperty("Accept-Encoding", "identity");
-        connection.setRequestProperty("User-Agent", "MediaGallery-Android/2.22 (optional web connector)");
+        connection.setRequestProperty("User-Agent", "MediaGallery-Android/2.23 (optional web connector)");
         synchronized (this) {
             current(generation);
             if (active.size() >= 6) throw new IOException("E_WEB_BUSY");
@@ -399,7 +487,11 @@ final class WebNetwork {
     }
 
     static String digest(String value) throws Exception {
-        byte[] bytes = MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8));
+        return digest(value.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static String digest(byte[] input) throws Exception {
+        byte[] bytes = MessageDigest.getInstance("SHA-256").digest(input);
         StringBuilder hex = new StringBuilder(64);
         for (byte b : bytes) hex.append(String.format(Locale.ROOT, "%02x", b & 255));
         return hex.toString();

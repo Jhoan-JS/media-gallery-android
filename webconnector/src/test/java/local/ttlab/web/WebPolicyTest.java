@@ -25,14 +25,23 @@ public class WebPolicyTest {
                 "https://img3.gelbooru.com.evil.example/images/example.mp4"));
         assertThrows(IllegalArgumentException.class, () -> WebPolicy.media(WebSite.GELBOORU,
                 "https://img3.gelbooru.com/index.php"));
-        assertEquals("blue_sky sort:id:desc", WebPolicy.query(WebSite.GELBOORU, "blue_sky"));
-        assertEquals("sort:id:desc", WebPolicy.query(WebSite.GELBOORU, ""));
+        assertEquals("blue_sky", WebPolicy.query(WebSite.GELBOORU, "blue_sky"));
+        assertEquals("", WebPolicy.query(WebSite.GELBOORU, ""));
         for (String rating : new String[]{"general", "sensitive", "questionable", "explicit", ""}) {
             assertTrue(WebSite.GELBOORU.acceptsRating(rating));
         }
         assertFalse(WebSite.RULE34.acceptsRating("explicit"));
         assertTrue(WebSite.RULE34.acceptsRating("safe"));
         assertFalse(WebSite.RULE34.acceptsRating("general"));
+    }
+
+    @Test public void acceptsLegacyPathsAndRecognizesTheOfficialGate() {
+        assertEquals("/" + "/images/sample.png",
+                WebPolicy.media(WebSite.GELBOORU, "https://img4.gelbooru.com//images/sample.png").getRawPath());
+        assertTrue(WebPolicy.gelbooruGate(java.net.URI.create("https://gelbooru.com/hotlink.php?hash=example")));
+        assertFalse(WebPolicy.gelbooruGate(java.net.URI.create("https://unrelated.example/hotlink.php")));
+        assertThrows(IllegalArgumentException.class, () -> WebPolicy.media(WebSite.GELBOORU,
+                "https://gelbooru.com/hotlink.php?hash=example"));
     }
 
     @Test public void acceptsOnlyExactByteRanges() throws Exception {
