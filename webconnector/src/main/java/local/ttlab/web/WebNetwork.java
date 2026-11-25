@@ -32,14 +32,15 @@ final class WebNetwork {
     private long epoch;
     private long nextApi;
     private long nextMedia;
-    private final Object imageLock = new Object();
-    private volatile FullImage lastImage;
+    private static final int MAX_VIDEO_SNAPSHOT = 24 * 1024 * 1024;
+    private final Object wholeLock = new Object();
+    private volatile WholeMedia lastWhole;
 
-    private static final class FullImage {
+    private static final class WholeMedia {
         final long generation;
         final String version;
         final byte[] bytes;
-        FullImage(long generation, String version, byte[] bytes) {
+        WholeMedia(long generation, String version, byte[] bytes) {
             this.generation=generation; this.version=version; this.bytes=bytes;
         }
     }
@@ -96,13 +97,14 @@ final class WebNetwork {
 
     static final class Representation {
         final long length;
-        final String validator, version;
-        final boolean fullImage;
-        Representation(long length, String validator, String version, boolean fullImage) {
+        final WebValidator validator;
+        final String version;
+        final boolean whole;
+        Representation(long length, WebValidator validator, String version, boolean whole) {
             this.length = length;
             this.validator = validator;
             this.version = version;
-            this.fullImage = fullImage;
+            this.whole = whole;
         }
     }
 
@@ -113,7 +115,7 @@ final class WebNetwork {
         synchronized (this) {
             epoch++;
             known.clear();
-            lastImage = null;
+            lastWhole = null;
             pending = new ArrayList<>(active);
             active.clear();
         }
@@ -158,7 +160,7 @@ final class WebNetwork {
             current(generation);
             if (site == WebSite.GELBOORU && page == 0) {
                 known.clear();
-                lastImage = null;
+                lastWhole = null;
             }
             for (Post post : posts) remember(post);
         }
@@ -213,30 +215,40 @@ final class WebNetwork {
     }
 
     Representation describe(Post post, long generation, CancellationSignal cancel) throws Exception {
-        if (site == WebSite.GELBOORU && post.mime.startsWith("image/")) {
-            synchronized (imageLock) { return loadGelbooruImage(post, generation, cancel); }
+        boolean gelbooru = site == WebSite.GELBOORU;
+        if (gelbooru && post.mime.startsWith("image/")) {
+            synchronized (wholeLock) { return loadGelbooruImage(post, generation, cancel); }
         }
+        long length;
         try (Exchange exchange = openMedia(post.file, generation, cancel, "bytes=0-0", null)) {
             HttpURLConnection connection = exchange.connection;
             int status = connection.getResponseCode();
             checkStatus(connection, status, false);
             validateType(connection, post.mime);
+            if (gelbooru && status == 200) {
+                synchronized (wholeLock) {
+                    return snapshotVideo(post, connection, generation, -1, cancel);
+                }
+            }
             boolean full = status == 200 && post.mime.startsWith("image/");
-            long length;
             if (full) {
                 length = connection.getContentLengthLong();
-                if (length < 1 || length > 16 * 1024 * 1024) {
-                    throw new IOException("E_WEB_IMAGE_SIZE");
-                }
+                if (length < 1 || length > 16 * 1024 * 1024) throw new IOException("E_WEB_IMAGE_SIZE");
             } else {
                 length = WebPolicy.contentRange(status, connection.getHeaderField("Content-Range"), 0, 1);
             }
-            String etag = connection.getHeaderField("ETag");
-            if (etag == null || !etag.matches("\"[^\"\\p{Cntrl}]{1,160}\"")) {
-                throw new IOException("E_WEB_MEDIA_VERSION");
+            WebValidator validator = WebValidator.from(connection.getHeaderField("ETag"),
+                    connection.getHeaderField("Last-Modified"), connection.getHeaderField("Date"), gelbooru);
+            if (validator != null) {
+                String identity = "ETag".equals(validator.responseHeader)
+                        ? validator.value : validator.responseHeader + "|" + validator.value;
+                String version = digest(post.revision + "|" + identity + "|" + length);
+                return new Representation(length, validator, version, full);
             }
-            return new Representation(length, etag, digest(post.revision + "|" + etag + "|" + length), full);
+            if (!gelbooru) throw new IOException("E_WEB_MEDIA_VERSION");
+            if (length > MAX_VIDEO_SNAPSHOT) throw new IOException("E_WEB_VIDEO_UNVERIFIED_SIZE");
         }
+        synchronized (wholeLock) { return loadGelbooruVideo(post, generation, length, cancel); }
     }
 
     byte[] range(Post post, Representation rep, long generation, long offset, int length,
@@ -244,30 +256,32 @@ final class WebNetwork {
         if (offset < 0 || length < 1 || length > WebPolicy.RANGE || offset > rep.length - length) {
             throw new IOException("E_WEB_RANGE");
         }
-        if (rep.fullImage) return imageRange(post, rep, generation, offset, length, cancel);
+        if (rep.whole) return wholeRange(post, rep, generation, offset, length, cancel);
         String requestedRange = "bytes=" + offset + "-" + (offset + length - 1);
         try (Exchange exchange = openMedia(post.file, generation, cancel, requestedRange, rep.validator)) {
             HttpURLConnection connection = exchange.connection;
             int status = connection.getResponseCode();
             checkStatus(connection, status, false);
             validateType(connection, post.mime);
-            if (!rep.validator.equals(connection.getHeaderField("ETag"))) throw new IOException("E_WEB_CHANGED");
+            if (!rep.validator.matches(connection)) throw new IOException("E_WEB_CHANGED");
             long total = WebPolicy.contentRange(status, connection.getHeaderField("Content-Range"), offset, length);
             if (total != rep.length) throw new IOException("E_WEB_CHANGED");
             return read(connection, length, length, cancel);
         }
     }
 
-    private byte[] imageRange(Post post, Representation rep, long generation, long offset, int length,
+    private byte[] wholeRange(Post post, Representation rep, long generation, long offset, int length,
                               CancellationSignal cancel) throws Exception {
-        synchronized (imageLock) {
+        synchronized (wholeLock) {
             current(generation);
-            FullImage image = lastImage;
-            if (image == null || image.generation != generation || !image.version.equals(rep.version)) {
+            WholeMedia media = lastWhole;
+            if (media == null || media.generation != generation || !media.version.equals(rep.version)) {
                 if (site == WebSite.GELBOORU) {
-                    Representation fresh = loadGelbooruImage(post, generation, cancel);
-                    image = lastImage;
-                    if (!rep.version.equals(fresh.version) || image == null || !rep.version.equals(image.version)) {
+                    Representation fresh = post.mime.startsWith("video/")
+                            ? loadGelbooruVideo(post, generation, rep.length, cancel)
+                            : loadGelbooruImage(post, generation, cancel);
+                    media = lastWhole;
+                    if (!rep.version.equals(fresh.version) || media == null || !rep.version.equals(media.version)) {
                         throw new IOException("E_WEB_CHANGED");
                     }
                 } else {
@@ -276,17 +290,56 @@ final class WebNetwork {
                         int status = connection.getResponseCode();
                         checkStatus(connection, status, false);
                         validateType(connection, post.mime);
-                        if (status != 200 || !rep.validator.equals(connection.getHeaderField("ETag")) ||
-                                connection.getContentLengthLong() != rep.length) throw new IOException("E_WEB_CHANGED");
+                        if (status != 200 || !rep.validator.matches(connection)
+                                || connection.getContentLengthLong() != rep.length) throw new IOException("E_WEB_CHANGED");
                         byte[] bytes = read(connection, (int) rep.length, (int) rep.length, cancel);
-                        image = new FullImage(generation, rep.version, bytes);
-                        synchronized (this) { current(generation); lastImage = image; }
+                        media = new WholeMedia(generation, rep.version, bytes);
+                        synchronized (this) { current(generation); lastWhole = media; }
                     }
                 }
             }
             cancel.throwIfCanceled();
-            return java.util.Arrays.copyOfRange(image.bytes, (int) offset, (int) offset + length);
+            return java.util.Arrays.copyOfRange(media.bytes, (int) offset, (int) offset + length);
         }
+    }
+
+    private Representation loadGelbooruVideo(Post post, long generation, long expected, CancellationSignal cancel)
+            throws Exception {
+        try (Exchange exchange = openMedia(post.file, generation, cancel, null, null)) {
+            HttpURLConnection connection = exchange.connection;
+            int status = connection.getResponseCode();
+            checkStatus(connection, status, false);
+            validateType(connection, post.mime);
+            if (status != 200) throw new IOException("E_WEB_HTTP_" + status);
+            return snapshotVideo(post, connection, generation, expected, cancel);
+        }
+    }
+
+    private Representation snapshotVideo(Post post, HttpURLConnection connection, long generation,
+                                         long expected, CancellationSignal cancel) throws Exception {
+        long declared = connection.getContentLengthLong();
+        if (declared > MAX_VIDEO_SNAPSHOT || expected > MAX_VIDEO_SNAPSHOT) {
+            throw new IOException("E_WEB_VIDEO_UNVERIFIED_SIZE");
+        }
+        if (declared >= 0 && expected >= 0 && declared != expected) throw new IOException("E_WEB_CHANGED");
+        long length = expected >= 0 ? expected : declared;
+        if (length == 0) throw new IOException("E_WEB_SIZE");
+        byte[] bytes;
+        if (length < 0) bytes = read(connection, MAX_VIDEO_SNAPSHOT, -1, cancel);
+        else {
+            bytes = new byte[(int) length];
+            try (InputStream input = connection.getInputStream()) {
+                int offset = 0;
+                while (offset < bytes.length) {
+                    cancel.throwIfCanceled();
+                    int count = input.read(bytes, offset, bytes.length - offset);
+                    if (count < 0) throw new IOException("E_WEB_SIZE");
+                    offset += count;
+                }
+                if (input.read() != -1) throw new IOException("E_WEB_SIZE");
+            }
+        }
+        return rememberWhole(post, generation, bytes);
     }
 
     private Representation loadGelbooruImage(Post post, long generation, CancellationSignal cancel) throws Exception {
@@ -297,12 +350,17 @@ final class WebNetwork {
             if (post.sample == null || post.sample.equals(post.file) || !mayUseAlternative(failure)) throw failure;
             bytes = fetchImage(post.sample, generation, cancel, 16 * 1024 * 1024);
         }
-        String version = digest(post.revision + "|image|" + digest(bytes));
+        return rememberWhole(post, generation, bytes);
+    }
+
+    private Representation rememberWhole(Post post, long generation, byte[] bytes) throws Exception {
+        String kind = post.mime.startsWith("video/") ? "video" : "image";
+        String version = digest(post.revision + "|" + kind + "|" + digest(bytes));
         synchronized (this) {
             current(generation);
-            lastImage = new FullImage(generation, version, bytes);
+            lastWhole = new WholeMedia(generation, version, bytes);
         }
-        return new Representation(bytes.length, "", version, true);
+        return new Representation(bytes.length, null, version, true);
     }
 
     private static boolean mayUseAlternative(IOException failure) {
@@ -415,7 +473,7 @@ final class WebNetwork {
         }
     }
 
-    private Exchange openMedia(URI address, long generation, CancellationSignal cancel, String range, String validator)
+    private Exchange openMedia(URI address, long generation, CancellationSignal cancel, String range, WebValidator validator)
             throws Exception {
         URI target = address;
         for (int hop = 0; hop <= 2; hop++) {
@@ -429,7 +487,7 @@ final class WebNetwork {
                     connection.setRequestProperty("Referer", site.api.resolve("/").toASCIIString());
                 }
                 if (range != null) connection.setRequestProperty("Range", range);
-                if (validator != null) connection.setRequestProperty("If-Match", validator);
+                if (validator != null) validator.apply(connection);
                 int status = connection.getResponseCode();
                 if (site != WebSite.GELBOORU || status < 300 || status >= 400) {
                     keep = true;
@@ -459,7 +517,7 @@ final class WebNetwork {
         connection.setConnectTimeout(7000);
         connection.setReadTimeout(9000);
         connection.setRequestProperty("Accept-Encoding", "identity");
-        connection.setRequestProperty("User-Agent", "MediaGallery-Android/2.24 (optional web connector)");
+        connection.setRequestProperty("User-Agent", "MediaGallery-Android/2.25 (optional web connector)");
         synchronized (this) {
             current(generation);
             if (active.size() >= 6) throw new IOException("E_WEB_BUSY");

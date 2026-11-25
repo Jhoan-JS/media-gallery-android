@@ -44,7 +44,7 @@ final class WebSource extends Source {
 
     @Override void guard() throws Exception {
         super.guard();
-        if (gelbooru && packages.getPackageInfo(PACKAGE, 0).getLongVersionCode() < 6) {
+        if (gelbooru && packages.getPackageInfo(PACKAGE, 0).getLongVersionCode() < 7) {
             throw new IOException("E_WEB_UPDATE");
         }
     }
@@ -218,12 +218,13 @@ final class WebSource extends Source {
         if (code.equals("E_WEB_CHANGED") || code.equals("E_WEB_REOPEN")) return "El archivo cambió o la vista caducó. Regresa a la lista y ábrelo de nuevo.";
         if (code.equals("E_WEB_NETWORK")) return "No se pudo conectar al sitio. Código WEB-RED.";
         if (code.equals("E_WEB_RANGE")) return "El servidor no entregó el tramo solicitado del archivo. Código WEB-TRAMOS.";
-        if (code.contains("E_WEB_UPDATE")) return "Actualiza Conector Web a la versión 1.5 o posterior para usar Gelbooru.";
+        if (code.contains("E_WEB_UPDATE")) return "Actualiza Conector Web a la versión 1.6 o posterior para usar Gelbooru.";
         if (code.contains("E_WEB_NO_RANGES")) return "El servidor no permite adelantar este video.";
         if (code.contains("E_WEB_LIMIT") || code.contains("E_WEB_BUSY")) return "El sitio limitó las solicitudes. Espera y reintenta.";
         if (code.contains("E_WEB_LIVE_CLIENT")) return "Vuelve a abrir Gelbooru para renovar la sesión.";
         if (code.contains("E_WEB_NO_STORE")) return "La respuesta del sitio no permite guardar estos datos en caché.";
-        if (code.contains("E_WEB_MEDIA_VERSION")) return "El servidor no confirmó la versión del archivo.";
+        if (code.equals("E_WEB_VIDEO_UNVERIFIED_SIZE")) return "Gelbooru no confirmó los tramos de este video y es demasiado grande para cargarlo completo en memoria.";
+        if (code.equals("E_WEB_MEDIA_VERSION")) return "El servidor no confirmó la versión del archivo.";
         if (code.contains("E_WEB_ACCESS")) return "El sitio rechazó el acceso. Revisa la autorización.";
         if (code.contains("E_WEB_DISABLED") || code.contains("E_WEB_CONNECTOR")) return "Habilita la fuente en Conector Web.";
         if (code.contains("E_WEB_TAGS")) return "Usa de una a ocho etiquetas. Separa los términos con espacios.";

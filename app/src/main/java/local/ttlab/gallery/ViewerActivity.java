@@ -344,7 +344,7 @@ public final class ViewerActivity extends SecureActivity {
         if(closed||!previewActive||state==null||!state.unlocked)return;
         undo.clear();persistPlayback();cancelRequest();releaseVideo();loadStarted=android.os.SystemClock.elapsedRealtime();readyMillis=frameMillis=-1;final int generation=epoch;final int channel=currentChannel,id=currentId;final State origin=state;
         item=null;flagEdits.clear();before=after=null;openedQueued=false;viewedQueued=false;watch=new PlaybackWatch();loading=true;loadFailed=false;awaitingSeek=false;image.clear();surface.setVisibility(View.GONE);image.setVisibility(View.VISIBLE);gestureLayer.setVisibility(View.GONE);centerControls.setVisibility(View.GONE);transport.setVisibility(View.GONE);progress.setVisibility(View.VISIBLE);skipFeedback.setVisibility(View.GONE);title.setText("Archivo");status.setMaxLines(2);status.setText("Cargando archivo…");status.setVisibility(View.VISIBLE);showControls();
-        loadTimeout=()->{if(!closed&&epoch==generation&&loading){if(webPrepare!=null)webPrepare.cancel();cancel(mediaWork);cancel(prepareWork);showError();}};handler.postDelayed(loadTimeout,30000);
+        loadTimeout=()->{if(!closed&&epoch==generation&&loading){if(webPrepare!=null)webPrepare.cancel();cancel(mediaWork);cancel(prepareWork);showError();}};handler.postDelayed(loadTimeout,WebSource.GELBOORU.equals(origin.key)?45000:30000);
         final android.os.CancellationSignal remote=SourceId.web(origin.key)?new android.os.CancellationSignal():null;
         webPrepare=remote;
         lookupWork=(remote==null?origin.database:worker).submit(()->{try{

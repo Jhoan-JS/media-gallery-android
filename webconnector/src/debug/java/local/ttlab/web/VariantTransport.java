@@ -19,24 +19,28 @@ final class VariantTransport {
 
     static HttpURLConnection open(Context context, URI uri) throws IOException {
         if (!BuildConfig.WEB_FIXTURE) return (HttpURLConnection) uri.toURL().openConnection(Proxy.NO_PROXY);
-        JSONObject livePost = readLivePost(context);
-        if (livePost != null) {
+        JSONObject[] livePosts = {
+                readLivePost(context, "live-general.json", 15335274),
+                readLivePost(context, "live-general-video.json", 15334168)
+        };
+        for (JSONObject row : livePosts) {
+            if (row == null) continue;
             for (String field : new String[]{"file_url", "sample_url", "preview_url"}) {
-                if (uri.toASCIIString().equals(livePost.optString(field))) {
+                if (uri.toASCIIString().equals(row.optString(field))) {
                     Log.i("GalleryWebFixture", "Known General post requested: " + field);
                     return (HttpURLConnection) uri.toURL().openConnection(Proxy.NO_PROXY);
                 }
             }
         }
-        return new FixtureConnection(context, uri, livePost);
+        return new FixtureConnection(context, uri, livePosts);
     }
 
-    private static JSONObject readLivePost(Context context) throws IOException {
-        try (InputStream input = context.getAssets().open("live-general.json")) {
+    private static JSONObject readLivePost(Context context, String asset, int expectedId) throws IOException {
+        try (InputStream input = context.getAssets().open(asset)) {
             byte[] metadata = input.readNBytes(8193);
             if (metadata.length > 8192) throw new IOException("Oversized live fixture");
             JSONObject row = new JSONObject(new String(metadata, StandardCharsets.UTF_8));
-            if (row.getInt("id") != 15335274 || !"general".equals(row.getString("rating"))) {
+            if (row.getInt("id") != expectedId || !"general".equals(row.getString("rating"))) {
                 throw new IOException("Unexpected live fixture");
             }
             return row;
@@ -50,16 +54,17 @@ final class VariantTransport {
     private static final class FixtureConnection extends HttpURLConnection {
         private final Context context;
         private final URI uri;
-        private final JSONObject livePost;
+        private final JSONObject[] livePosts;
         private byte[] file;
         private int start, count, status;
-        private String type, range, etag, location;
+        private String type, range, etag, location, modified;
+        private static final String FIXTURE_MODIFIED = "Sun, 06 Nov 1994 08:49:37 GMT";
 
-        FixtureConnection(Context context, URI uri, JSONObject livePost) throws IOException {
+        FixtureConnection(Context context, URI uri, JSONObject[] livePosts) throws IOException {
             super(uri.toURL());
             this.context = context;
             this.uri = uri;
-            this.livePost = livePost;
+            this.livePosts = livePosts;
         }
 
         @Override public void connect() throws IOException {
@@ -105,11 +110,25 @@ final class VariantTransport {
                     try (InputStream in = context.getAssets().open(asset)) { file = in.readAllBytes(); }
                     ASSETS.put(asset, file);
                 }
-                if (asset.equals("fixture.mp4") || !uri.getHost().endsWith(".gelbooru.com")) {
+                boolean dateVideo = gelbooru && (name.endsWith("/298.mp4") || name.endsWith("/294.mp4"));
+                boolean snapshotVideo = gelbooru && name.endsWith("/296.mp4");
+                if (!dateVideo && !snapshotVideo && (asset.equals("fixture.mp4") || !gelbooru)) {
                     etag = "\"synthetic-" + asset + "-v1\"";
                 }
                 String request = getRequestProperty("Range");
                 status = 200;
+                if (dateVideo) {
+                    modified = FIXTURE_MODIFIED;
+                    if (request != null && !request.equals("bytes=0-0")) {
+                        if (!FIXTURE_MODIFIED.equals(getRequestProperty("If-Unmodified-Since"))
+                                || getRequestProperty("If-Match") != null) {
+                            throw new IOException("Invalid date condition for MP4 fixture");
+                        }
+                        if (name.endsWith("/294.mp4")) modified = "Sun, 06 Nov 1994 08:50:00 GMT";
+                        else Log.i("GalleryWebFixture", "Dated MP4 conditional range");
+                    }
+                }
+                if (snapshotVideo && request == null) Log.i("GalleryWebFixture", "Unversioned MP4 complete response");
                 if (request != null) {
                     String[] parts = request.substring(6).split("-");
                     start = Integer.parseInt(parts[0]);
@@ -147,12 +166,19 @@ final class VariantTransport {
                     throw new IOException("Missing Rule34 fixture rating");
                 }
                 JSONArray rows = new JSONArray();
+                JSONObject matching = null;
+                if (gelbooru) {
+                    for (JSONObject known : livePosts) {
+                        if (known != null && (known.optString("id").equals(id) || known.optString("tags").equals(tags))) {
+                            matching = known;
+                            break;
+                        }
+                    }
+                }
                 if (id != null) {
-                    int number = Integer.parseInt(id);
-                    rows.put(gelbooru && livePost != null && livePost.getInt("id") == number
-                            ? livePost : row(number, gelbooru));
-                } else if (gelbooru && "fixture_direct_media".equals(tags) && livePost != null) {
-                    if ("0".equals(page)) rows.put(livePost);
+                    rows.put(matching == null ? row(Integer.parseInt(id), gelbooru) : matching);
+                } else if (matching != null) {
+                    if ("0".equals(page)) rows.put(matching);
                 } else if (gelbooru || tags.contains(expectedTag)) {
                     int queryOffset = gelbooru && tags.startsWith("fixture_home") ? 100
                             : gelbooru && tags.startsWith("fixture_search") ? 200 : 0;
@@ -163,7 +189,7 @@ final class VariantTransport {
                 if (!gelbooru) return rows.toString();
                 if (id != null) return new JSONObject().put("post", rows).toString();
                 StringBuilder xml = new StringBuilder("<?xml version=\"1.0\"?><posts count=\"")
-                        .append(rows.length() == 0 ? 0 : "fixture_direct_media".equals(tags) ? 1 : 38)
+                        .append(rows.length() == 0 ? 0 : matching != null ? 1 : 38)
                         .append("\" offset=\"")
                         .append("1".equals(page) ? 30 : 0).append("\">");
                 for (int index = 0; index < rows.length(); index++) {
@@ -206,6 +232,8 @@ final class VariantTransport {
             if ("Cache-Control".equalsIgnoreCase(key) && uri.getHost().endsWith(".gelbooru.com")) return "private, no-store";
             if ("Cache-Control".equalsIgnoreCase(key) && "gelbooru.com".equals(uri.getHost())) return "no-store";
             if ("Location".equalsIgnoreCase(key)) return location;
+            if ("Date".equalsIgnoreCase(key) && modified != null) return "Sun, 06 Nov 1994 08:51:38 GMT";
+            if ("Last-Modified".equalsIgnoreCase(key)) return modified;
             if ("ETag".equalsIgnoreCase(key)) return etag;
             if ("Content-Range".equalsIgnoreCase(key)) return range;
             return null;

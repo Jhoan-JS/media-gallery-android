@@ -1,6 +1,6 @@
 # Optional Web Connector
 
-Gallery 2.24 and Web Connector 1.5 support Rule34.xxx and Gelbooru. Install both
+Gallery 2.25 and Web Connector 1.6 support Rule34.xxx and Gelbooru. Install both
 APK files in the same Android user with the same signing certificate. Android 12
 or later is required. Telegram Connector 1.1 and the local Tato interface use
 their existing protocols.
@@ -36,10 +36,12 @@ stay with the API request. The viewer loads images and compatible videos
 inside the gallery. Larger previews are reduced in memory for the grid.
 The viewer reports an error if the CDN declines a request.
 
-Playback uses the existing Media3 player. A successful seek requires a
-compatible codec, correct HTTP content ranges, and a stable media version
-validator. A video server that ignores byte ranges is shown as unsupported.
-Small images can use a bounded full response when byte ranges are unavailable.
+Playback uses the existing Media3 player. Gelbooru uses conditional byte
+ranges with a strong ETag or a last-modified timestamp that can identify the
+representation. If the server supplies neither or ignores byte ranges, the
+connector can load a video up to 24 MiB from a single response into memory.
+Larger videos in that case show an error. Rule34.xxx still requires a strong
+ETag and byte ranges for video.
 
 [Rule34 API documentation](https://api.rule34.xxx/) ·
 [Rule34 terms](https://rule34.xxx/index.php?page=tos)

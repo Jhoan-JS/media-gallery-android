@@ -11,8 +11,8 @@ android {
         manifestPlaceholders.telegramAuthority = (project.findProperty('qaTelegramAuthority') ?: (project.findProperty('qaTelegramApplicationId') ?: 'local.ttlab.telegram').toString()+'.bridge').toString()
         minSdk 31
         targetSdk 36
-        versionCode 26
-        versionName '2.24'
+        versionCode 27
+        versionName '2.25'
         buildConfigField 'String','TELEGRAM_PACKAGE','"'+(project.findProperty('qaTelegramApplicationId') ?: 'local.ttlab.telegram').toString()+'"'
         buildConfigField 'String','TELEGRAM_AUTHORITY','"'+(project.findProperty('qaTelegramAuthority') ?: (project.findProperty('qaTelegramApplicationId') ?: 'local.ttlab.telegram').toString()+'.bridge').toString()+'"'
         ndk { abiFilters (project.findProperty('uiQaAbi') ?: 'arm64-v8a').toString() }
