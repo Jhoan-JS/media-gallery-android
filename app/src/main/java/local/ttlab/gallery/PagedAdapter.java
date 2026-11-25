@@ -8,6 +8,7 @@ import android.widget.*;
 import java.util.*;
 
 final class PagedAdapter extends BaseAdapter implements SectionIndexer {
+    static final int PAGE_SIZE = 96;
     private DateSections sections=DateSections.EMPTY;private Map<String,Item> selected=Collections.emptyMap();
     private final Activity activity;private final State state;private int count,generation;private final MediaFilter filter;
     private final LinkedHashMap<Integer,List<Item>> pages=new LinkedHashMap<Integer,List<Item>>(4,0.75f,true){protected boolean removeEldestEntry(Map.Entry<Integer,List<Item>> e){return size()>4;}};
@@ -16,6 +17,16 @@ final class PagedAdapter extends BaseAdapter implements SectionIndexer {
     PagedAdapter(Activity a,State s,int c,String q,int t,boolean o,long f,long u,boolean d,int n){this(a,s,new MediaFilter(c,q,t,o,f,u,d),n);}
     PagedAdapter(Activity a,State s,MediaFilter f,int n){activity=a;state=s;filter=f.copy();count=n;previews=new PreviewRequests(s.media,s.gridPreviews,()->!closed&&!paused&&s.unlocked,a::runOnUiThread);}
     void refreshCount(int n){previews.cancel();generation++;pending.clear();if(n==count&&!pages.isEmpty()){for(int page:new ArrayList<>(pages.keySet()))load(page);}else{count=n;pages.clear();notifyDataSetChanged();}}
+    void replaceWebWindow(int newCount, int start, List<Item> rows) {
+        generation++;
+        pending.clear();
+        pages.clear();
+        count = newCount;
+        for (int offset = 0; offset < rows.size(); offset += PAGE_SIZE) {
+            pages.put((start + offset) / PAGE_SIZE, rows.subList(offset, Math.min(offset + PAGE_SIZE, rows.size())));
+        }
+        notifyDataSetChanged();
+    }
     MediaFilter snapshot(){return filter.copy();}
     void sections(DateSections index){sections=index;}
     void selection(Map<String,Item> values){selected=values;notifyDataSetChanged();}
@@ -23,33 +34,33 @@ final class PagedAdapter extends BaseAdapter implements SectionIndexer {
     @Override public int getPositionForSection(int section){return sections.position(section);}
     @Override public int getSectionForPosition(int position){return sections.section(position);}
     @Override public int getCount(){return count;}
-    Item item(int position){List<Item> page=pages.get(position/96);int offset=position%96;return page!=null&&offset<page.size()?page.get(offset):null;}
+    Item item(int position){List<Item> page=pages.get(position/PAGE_SIZE);int offset=position%PAGE_SIZE;return page!=null&&offset<page.size()?page.get(offset):null;}
     @Override public Object getItem(int p){return item(p);}
     @Override public long getItemId(int p){Item item=item(p);return item==null?p:((long)item.channel<<32)|(item.id&0xffffffffL);}
     @Override public View getView(int position,View recycled,ViewGroup parent){
         Tile tile=recycled instanceof Tile?(Tile)recycled:new Tile(activity);
         int columns=Math.max(1,((GridView)parent).getNumColumns());
         tile.setLayoutParams(new AbsListView.LayoutParams(-1,Math.max(dp(48),(parent.getWidth()-parent.getPaddingLeft()-parent.getPaddingRight()-dp(5)*(columns-1))/columns)));
-        Item item=item(position);String bound=item==null?"pending-"+position:item.cacheKey();if(!bound.equals(tile.bound))tile.placeholder();tile.bound=bound;tile.setTag(tile.bound);tile.caption.setText(item==null?(pages.containsKey(position/96)?"No disponible":"Cargando…"):item.label());tile.caption.setVisibility(View.GONE);tile.video.setVisibility(item!=null&&item.video()?View.VISIBLE:View.GONE);tile.seen.setVisibility(item!=null&&item.video()&&item.viewed?View.VISIBLE:View.GONE);
+        Item item=item(position);String bound=item==null?"pending-"+position:item.cacheKey();if(!bound.equals(tile.bound))tile.placeholder();tile.bound=bound;tile.setTag(tile.bound);tile.caption.setText(item==null?(pages.containsKey(position/PAGE_SIZE)?"No disponible":"Cargando…"):item.label());tile.caption.setVisibility(View.GONE);tile.video.setVisibility(item!=null&&item.video()?View.VISIBLE:View.GONE);tile.seen.setVisibility(item!=null&&item.video()&&item.viewed?View.VISIBLE:View.GONE);
         tile.stack.setText(item!=null&&item.stackCount>1?"×"+item.stackCount:"");tile.stack.setVisibility(item!=null&&item.stackCount>1?View.VISIBLE:View.GONE);
         boolean checked=item!=null&&selected.containsKey(item.key())&&selected.get(item.key()).revision.equals(item.revision);tile.setSelected(checked);tile.choice.setVisibility(checked?View.VISIBLE:View.GONE);tile.image.setAlpha(checked?.65f:1f);
-        tile.setContentDescription(item==null?(pages.containsKey(position/96)?"No se pudo cargar el archivo. Pulsa Actualizar para reintentar.":"Cargando archivo"):item.label()+(item.video()?", video":", imagen")+(item.viewed?", visto":"")+(item.stackCount>1?", pila de "+item.stackCount+" reenvíos. Toca para ver sus archivos":""));
+        tile.setContentDescription(item==null?(pages.containsKey(position/PAGE_SIZE)?"No se pudo cargar el archivo. Pulsa Actualizar para reintentar.":"Cargando archivo"):item.label()+(item.video()?", video":", imagen")+(item.viewed?", visto":"")+(item.stackCount>1?", pila de "+item.stackCount+" reenvíos. Toca para ver sus archivos":""));
         tile.marks.setText(item!=null&&item.watchLater?"Ver después":"");android.graphics.drawable.Drawable star=item!=null&&item.favorite?activity.getDrawable(R.drawable.ic_gallery_star).mutate():null;if(star!=null){star.setBounds(0,0,dp(14),dp(14));star.setTint(activity.getColor(R.color.gallery_foreground));}tile.marks.setCompoundDrawablesRelative(star,null,null,null);tile.marks.setCompoundDrawablePadding(dp(3));tile.marks.setVisibility(item!=null&&(item.favorite||item.watchLater)?View.VISIBLE:View.GONE);
         boolean continuing=item!=null&&item.video()&&item.positionMs>0&&item.durationMs>0&&!item.completed;tile.progress.setVisibility(continuing?View.VISIBLE:View.GONE);tile.progress.setProgress(continuing?(int)Math.min(100,100L*item.positionMs/item.durationMs):0);
         if(item!=null)tile.setContentDescription(tile.getContentDescription()+(item.favorite?", favorito":"")+(item.watchLater?", ver después":"")+(continuing?", en progreso":""));
-        if(item==null){if(!pages.containsKey(position/96))load(position/96);else tile.caption.setVisibility(View.VISIBLE);return tile;}
-        Bitmap cached=state.media.memoryPreview(item);if(cached!=null)tile.preview(cached);else previews.request(item,tile,preview->{if(!closed&&!paused&&item.cacheKey().equals(tile.getTag())){if(preview!=null)tile.preview(preview);else{tile.caption.setText(item.label()+"\nSin miniatura");tile.caption.setVisibility(View.VISIBLE);tile.setContentDescription(item.label()+", sin miniatura"+(item.stackCount>1?", pila de "+item.stackCount+" reenvíos":"")+". Toca para abrir.");}}});return tile;
+        if(item==null){if(!pages.containsKey(position/PAGE_SIZE))load(position/PAGE_SIZE);else tile.caption.setVisibility(View.VISIBLE);return tile;}
+        Bitmap cached=state.media.memoryPreview(item);if(cached!=null)tile.preview(cached);else previews.request(item,tile,preview->{if(!closed&&!paused&&item.cacheKey().equals(tile.getTag())){if(preview!=null)tile.preview(preview);else{tile.caption.setText(item.label()+"\nSin miniatura");tile.caption.setVisibility(View.VISIBLE);tile.setContentDescription(tile.getContentDescription()+", sin miniatura. Toca para abrir.");}}});return tile;
     }
     private void load(int number){
         if(closed||pending.contains(number)||pending.size()>=4)return;pending.add(number);final int requested=generation;
         state.database.execute(()->{List<Item> result;
-            try{if(closed||requested!=generation)return;result=state.library.page(filter,number*96,96);}catch(Exception error){result=Collections.emptyList();}
+            try{if(closed||requested!=generation)return;result=state.library.page(filter,number*PAGE_SIZE,PAGE_SIZE);}catch(Exception error){result=Collections.emptyList();}
             final List<Item> found=result;activity.runOnUiThread(()->{if(requested!=generation)return;pending.remove(number);if(!closed){pages.put(number,found);notifyDataSetChanged();}});
         });
     }
     void viewport(int first,int visible,boolean idle){
         if(closed||paused)return;Set<String> retained=new HashSet<>();for(int n=Math.max(0,first);n<Math.min(count,first+visible);n++){Item row=item(n);if(row!=null)retained.add(row.cacheKey());}
-        if(idle)for(int n=first+visible;n<Math.min(count,first+visible+6);n++){Item row=item(n);if(row==null){load(n/96);continue;}retained.add(row.cacheKey());if(state.media.memoryPreview(row)==null)previews.request(row,null,null);}
+        if(idle)for(int n=first+visible;n<Math.min(count,first+visible+6);n++){Item row=item(n);if(row==null){load(n/PAGE_SIZE);continue;}retained.add(row.cacheKey());if(state.media.memoryPreview(row)==null)previews.request(row,null,null);}
         previews.retain(retained);
     }
     void suspend(){paused=true;previews.cancel();}

@@ -1,6 +1,6 @@
 # Optional Web Connector
 
-Gallery 2.25 and Web Connector 1.6 support Rule34.xxx and Gelbooru. Install both
+Gallery 2.26 and Web Connector 1.6 support Rule34.xxx and Gelbooru. Install both
 APK files in the same Android user with the same signing certificate. Android 12
 or later is required. Telegram Connector 1.1 and the local Tato interface use
 their existing protocols.
@@ -12,9 +12,12 @@ their existing protocols.
    The gallery cannot read the key.
 3. Gelbooru loads recent posts on entry. Set **Etiquetas de inicio** under
    settings to load recent posts that match all your chosen tags. Typing in
-   the search field searches after a short pause. Use **Todo**, **Imágenes**
-   or **Videos** to filter loaded pages. **Cargar más** reads the next page.
-4. Tap a tile to open the existing viewer. **Etiquetas del sitio** starts a
+   the search field searches after a short pause. Images and videos appear
+   together, and the next page loads as you scroll. Open **Filtros** next to
+   search to narrow the feed by type, orientation or watched status. Choose
+   **Tamaño de miniaturas** under settings for a larger or denser grid.
+4. Tap a tile to open the viewer. The gallery restores your place when you return.
+   Searches can browse up to 40 pages of 30 posts each, subject to site limits. **Etiquetas del sitio** starts a
    search for the selected tag. Use the source picker to leave and return.
 
 Each web source is off by default. Gelbooru includes every rating returned
