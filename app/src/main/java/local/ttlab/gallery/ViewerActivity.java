@@ -40,7 +40,6 @@ public final class ViewerActivity extends SecureActivity {
     private PlaybackWatch watch=new PlaybackWatch();
     private volatile Item item;private VideoPlayer player;private MediaDataSource video;private boolean loading,loadFailed,prepared,surfaceReady;private volatile boolean closed;
     private android.os.CancellationSignal webPrepare;
-    private Button openOfficialPost;
     private Future<?> lookupWork,mediaWork,prepareWork,neighborWork,thumbnailWork;private volatile int thumbnailEpoch,epoch;private volatile boolean previewActive;private Runnable loadTimeout;
     private final Runnable tick=new Runnable(){public void run(){if(player!=null&&prepared&&!awaitingSeek){try{int position=player.getCurrentPosition();if(!dragging){seek.setProgress(position);elapsed(position);}observePlayback(position,player.isPlaying()&&!buffering&&!dragging);long now=android.os.SystemClock.elapsedRealtime();if(now-lastCheckpoint>=5000){persistPlayback();lastCheckpoint=now;}}catch(IllegalStateException ignored){}}if(!closed&&previewActive)handler.postDelayed(this,500);}};
     private final Runnable hideControls=()->{if(player!=null&&prepared&&!dragging&&previewActive&&!touchExploration())try{if(player.isPlaying())setControlsVisible(false);}catch(IllegalStateException ignored){}};
@@ -66,13 +65,6 @@ public final class ViewerActivity extends SecureActivity {
             public void onProgressChanged(SeekBar s,int p,boolean user){if(user){elapsed(p);if(dragging)showScrubPreview(p);}}
         });
         status=GalleryUi.text(this,"Cargando archivo…",12,getColor(R.color.gallery_muted));status.setMaxLines(4);status.setPadding(dp(16),dp(4),dp(16),dp(8));status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);footer.addView(status);
-        if(WebSource.GELBOORU.equals(state.key)){
-            openOfficialPost=GalleryUi.button(this,"Abrir en Gelbooru",false);
-            openOfficialPost.setVisibility(View.GONE);
-            openOfficialPost.setOnClickListener(v->openGelbooruPost());
-            LinearLayout.LayoutParams link=new LinearLayout.LayoutParams(-1,dp(48));link.setMargins(dp(16),0,dp(16),dp(8));
-            footer.addView(openOfficialPost,link);
-        }
         videoOverlay.addView(footer,new FrameLayout.LayoutParams(-1,-2,Gravity.BOTTOM));
         scrubPreview=new ImageView(this);
         scrubPreview.setTag("scrub-preview-frame");
@@ -350,7 +342,6 @@ public final class ViewerActivity extends SecureActivity {
     @Override void onUnlocked(){if(previewActive)load();}
     private void load(){
         if(closed||!previewActive||state==null||!state.unlocked)return;
-        if(openOfficialPost!=null)openOfficialPost.setVisibility(View.GONE);
         undo.clear();persistPlayback();cancelRequest();releaseVideo();loadStarted=android.os.SystemClock.elapsedRealtime();readyMillis=frameMillis=-1;final int generation=epoch;final int channel=currentChannel,id=currentId;final State origin=state;
         item=null;flagEdits.clear();before=after=null;openedQueued=false;viewedQueued=false;watch=new PlaybackWatch();loading=true;loadFailed=false;awaitingSeek=false;image.clear();surface.setVisibility(View.GONE);image.setVisibility(View.VISIBLE);gestureLayer.setVisibility(View.GONE);centerControls.setVisibility(View.GONE);transport.setVisibility(View.GONE);progress.setVisibility(View.VISIBLE);skipFeedback.setVisibility(View.GONE);title.setText("Archivo");status.setMaxLines(2);status.setText("Cargando archivo…");status.setVisibility(View.VISIBLE);showControls();
         loadTimeout=()->{if(!closed&&epoch==generation&&loading){if(webPrepare!=null)webPrepare.cancel();cancel(mediaWork);cancel(prepareWork);showError();}};handler.postDelayed(loadTimeout,30000);
@@ -358,6 +349,12 @@ public final class ViewerActivity extends SecureActivity {
         webPrepare=remote;
         lookupWork=(remote==null?origin.database:worker).submit(()->{try{
             Item row=origin.library.get(channel,id);
+            if(row!=null&&!row.video()&&WebSource.GELBOORU.equals(origin.key)){
+                Bitmap preview=origin.media.memoryPreview(row);
+                if(preview!=null)runOnUiThread(()->{
+                    if(!closed&&previewActive&&origin.unlocked&&epoch==generation)image.show(preview);
+                });
+            }
             Item found=remote==null||row==null?row:((WebSource)origin.source).prepare(row,remote);
             if(!filter.stackKey.isEmpty()&&(found==null||!filter.stackKey.equals(found.contentKey)||!filter.stackMime.equals(found.mime)||filter.stackSize!=found.size)){
                 runOnUiThread(()->{if(!closed&&previewActive&&origin.unlocked&&epoch==generation){showError();status.setText("El archivo cambió y ya no pertenece a esta pila. Vuelve a la lista para actualizarla.");}});return;
@@ -445,16 +442,7 @@ public final class ViewerActivity extends SecureActivity {
         persistPlayback();cancelRequest();releaseVideo();loading=false;loadFailed=true;progress.setVisibility(View.GONE);
         status.setMaxLines(4);status.setVisibility(View.VISIBLE);
         status.setText(SourceId.web(state.key)?WebSource.message(failure):ConnectionMessage.describe(failure,Profiles.owner(),state.key));
-        if(openOfficialPost!=null)openOfficialPost.setVisibility(WebSource.isMediaGate(failure)?View.VISIBLE:View.GONE);
         showControls();handler.removeCallbacks(hideControls);
-    }
-    private void openGelbooruPost(){
-        if(!previewActive||!state.unlocked||openOfficialPost==null||!openOfficialPost.isShown()||currentId<1)return;
-        android.net.Uri target=new android.net.Uri.Builder().scheme("https").authority("gelbooru.com")
-                .appendPath("index.php").appendQueryParameter("page","post").appendQueryParameter("s","view")
-                .appendQueryParameter("id",Integer.toString(currentId)).build();
-        try{startActivity(new Intent(Intent.ACTION_VIEW,target).addCategory(Intent.CATEGORY_BROWSABLE));}
-        catch(android.content.ActivityNotFoundException unavailable){status.setText("No hay un navegador disponible para abrir la publicación.");}
     }
     private static void cancel(Future<?> work){if(work!=null)work.cancel(true);}
     private void clearLoadTimeout(){if(loadTimeout!=null)handler.removeCallbacks(loadTimeout);loadTimeout=null;}

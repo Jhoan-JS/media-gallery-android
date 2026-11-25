@@ -44,7 +44,7 @@ final class WebSource extends Source {
 
     @Override void guard() throws Exception {
         super.guard();
-        if (gelbooru && packages.getPackageInfo(PACKAGE, 0).getLongVersionCode() < 5) {
+        if (gelbooru && packages.getPackageInfo(PACKAGE, 0).getLongVersionCode() < 6) {
             throw new IOException("E_WEB_UPDATE");
         }
     }
@@ -193,10 +193,6 @@ final class WebSource extends Source {
         return builder.build();
     }
 
-    static boolean isMediaGate(Throwable failure) {
-        return "E_WEB_MEDIA_GATE".equals(errorCode(failure));
-    }
-
     private static String errorCode(Throwable failure) {
         for (int depth = 0; failure != null && depth < 8; depth++, failure = failure.getCause()) {
             String message = failure.getMessage();
@@ -209,7 +205,7 @@ final class WebSource extends Source {
 
     static String message(Throwable failure) {
         String code = errorCode(failure);
-        if (code.equals("E_WEB_MEDIA_GATE")) return "Gelbooru redirigió el archivo a su página. Puedes abrir la publicación oficial.";
+        if (code.equals("E_WEB_MEDIA_GATE")) return "Gelbooru no entregó el archivo para mostrarlo aquí. Código WEB-MEDIOS.";
         if (code.equals("E_WEB_MEDIA_REDIRECT")) return "El servidor redirigió el archivo fuera de las rutas de medios admitidas.";
         if (code.equals("E_WEB_API_REDIRECT")) return "El sitio redirigió la consulta del catálogo. Comprueba la conexión de la fuente.";
         if (code.equals("E_WEB_CATALOGUE_FORMAT")) return "No se reconoció la respuesta del catálogo. Código WEB-FORMATO.";
@@ -222,7 +218,7 @@ final class WebSource extends Source {
         if (code.equals("E_WEB_CHANGED") || code.equals("E_WEB_REOPEN")) return "El archivo cambió o la vista caducó. Regresa a la lista y ábrelo de nuevo.";
         if (code.equals("E_WEB_NETWORK")) return "No se pudo conectar al sitio. Código WEB-RED.";
         if (code.equals("E_WEB_RANGE")) return "El servidor no entregó el tramo solicitado del archivo. Código WEB-TRAMOS.";
-        if (code.contains("E_WEB_UPDATE")) return "Actualiza Conector Web a la versión 1.4 o posterior para usar Gelbooru.";
+        if (code.contains("E_WEB_UPDATE")) return "Actualiza Conector Web a la versión 1.5 o posterior para usar Gelbooru.";
         if (code.contains("E_WEB_NO_RANGES")) return "El servidor no permite adelantar este video.";
         if (code.contains("E_WEB_LIMIT") || code.contains("E_WEB_BUSY")) return "El sitio limitó las solicitudes. Espera y reintenta.";
         if (code.contains("E_WEB_LIVE_CLIENT")) return "Vuelve a abrir Gelbooru para renovar la sesión.";

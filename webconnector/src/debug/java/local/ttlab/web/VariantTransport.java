@@ -19,25 +19,53 @@ final class VariantTransport {
 
     static HttpURLConnection open(Context context, URI uri) throws IOException {
         if (!BuildConfig.WEB_FIXTURE) return (HttpURLConnection) uri.toURL().openConnection(Proxy.NO_PROXY);
-        return new FixtureConnection(context, uri);
+        JSONObject livePost = readLivePost(context);
+        if (livePost != null) {
+            for (String field : new String[]{"file_url", "sample_url", "preview_url"}) {
+                if (uri.toASCIIString().equals(livePost.optString(field))) {
+                    Log.i("GalleryWebFixture", "Known General post requested: " + field);
+                    return (HttpURLConnection) uri.toURL().openConnection(Proxy.NO_PROXY);
+                }
+            }
+        }
+        return new FixtureConnection(context, uri, livePost);
+    }
+
+    private static JSONObject readLivePost(Context context) throws IOException {
+        try (InputStream input = context.getAssets().open("live-general.json")) {
+            byte[] metadata = input.readNBytes(8193);
+            if (metadata.length > 8192) throw new IOException("Oversized live fixture");
+            JSONObject row = new JSONObject(new String(metadata, StandardCharsets.UTF_8));
+            if (row.getInt("id") != 15335274 || !"general".equals(row.getString("rating"))) {
+                throw new IOException("Unexpected live fixture");
+            }
+            return row;
+        } catch (java.io.FileNotFoundException absent) {
+            return null;
+        } catch (org.json.JSONException invalid) {
+            throw new IOException("Invalid live fixture");
+        }
     }
 
     private static final class FixtureConnection extends HttpURLConnection {
         private final Context context;
         private final URI uri;
+        private final JSONObject livePost;
         private byte[] file;
         private int start, count, status;
         private String type, range, etag, location;
 
-        FixtureConnection(Context context, URI uri) throws IOException {
+        FixtureConnection(Context context, URI uri, JSONObject livePost) throws IOException {
             super(uri.toURL());
             this.context = context;
             this.uri = uri;
+            this.livePost = livePost;
         }
 
         @Override public void connect() throws IOException {
             if (connected) return;
             if (isApi()) {
+                if (getRequestProperty("Referer") != null) throw new IOException("Referrer was sent to the API");
                 file = catalogue().getBytes(StandardCharsets.UTF_8);
                 type = "gelbooru.com".equals(uri.getHost()) && uri.getRawQuery().indexOf("json=1") < 0
                         ? "text/xml" : "application/json";
@@ -45,6 +73,11 @@ final class VariantTransport {
                 Log.i("GalleryWebFixture", "Synthetic search response");
             } else {
                 String name = uri.getPath();
+                boolean gelbooru = uri.getHost().endsWith(".gelbooru.com");
+                String referrer = getRequestProperty("Referer");
+                if (gelbooru ? !"https://gelbooru.com/".equals(referrer) : referrer != null) {
+                    throw new IOException("Wrong referrer for media fixture");
+                }
                 if (name.endsWith("/297.png") || name.endsWith("/297-thumb.png")) {
                     status = 302;
                     location = "https://gelbooru.com/hotlink.php?hash=synthetic";
@@ -114,8 +147,13 @@ final class VariantTransport {
                     throw new IOException("Missing Rule34 fixture rating");
                 }
                 JSONArray rows = new JSONArray();
-                if (id != null) rows.put(row(Integer.parseInt(id), gelbooru));
-                else if (gelbooru || tags.contains(expectedTag)) {
+                if (id != null) {
+                    int number = Integer.parseInt(id);
+                    rows.put(gelbooru && livePost != null && livePost.getInt("id") == number
+                            ? livePost : row(number, gelbooru));
+                } else if (gelbooru && "fixture_direct_media".equals(tags) && livePost != null) {
+                    if ("0".equals(page)) rows.put(livePost);
+                } else if (gelbooru || tags.contains(expectedTag)) {
                     int queryOffset = gelbooru && tags.startsWith("fixture_home") ? 100
                             : gelbooru && tags.startsWith("fixture_search") ? 200 : 0;
                     int high = "0".equals(page) ? 100 : 70;
@@ -125,7 +163,8 @@ final class VariantTransport {
                 if (!gelbooru) return rows.toString();
                 if (id != null) return new JSONObject().put("post", rows).toString();
                 StringBuilder xml = new StringBuilder("<?xml version=\"1.0\"?><posts count=\"")
-                        .append(rows.length() == 0 ? 0 : 38).append("\" offset=\"")
+                        .append(rows.length() == 0 ? 0 : "fixture_direct_media".equals(tags) ? 1 : 38)
+                        .append("\" offset=\"")
                         .append("1".equals(page) ? 30 : 0).append("\">");
                 for (int index = 0; index < rows.length(); index++) {
                     JSONObject post = rows.getJSONObject(index);

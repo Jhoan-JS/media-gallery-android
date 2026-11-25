@@ -313,13 +313,40 @@ final class WebNetwork {
     byte[] thumbnail(Post post, long generation, CancellationSignal cancel) throws Exception {
         if (post.thumb != null) {
             try {
-                return fetchImage(post.thumb, generation, cancel, WebPolicy.THUMB);
+                return fetchPreview(post.thumb, generation, cancel);
             } catch (IOException failure) {
                 if (post.sample == null || post.sample.equals(post.thumb) || !mayUseAlternative(failure)) throw failure;
             }
         }
         if (post.sample == null) throw new IOException("E_WEB_MISSING");
-        return fetchImage(post.sample, generation, cancel, WebPolicy.THUMB);
+        return fetchPreview(post.sample, generation, cancel);
+    }
+
+    private byte[] fetchPreview(URI address, long generation, CancellationSignal cancel) throws Exception {
+        int downloadLimit = site == WebSite.GELBOORU ? 512 * 1024 : WebPolicy.THUMB;
+        byte[] bytes = fetchImage(address, generation, cancel, downloadLimit);
+        if (bytes.length <= WebPolicy.THUMB) return bytes;
+
+        android.graphics.BitmapFactory.Options options = new android.graphics.BitmapFactory.Options();
+        options.inJustDecodeBounds = true;
+        android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.length, options);
+        int edge = Math.max(options.outWidth, options.outHeight);
+        if (edge < 1 || edge > 16384) throw new IOException("E_WEB_MEDIA_TYPE");
+        options.inJustDecodeBounds = false;
+        options.inSampleSize = 1;
+        while (edge / options.inSampleSize > 512) options.inSampleSize *= 2;
+        android.graphics.Bitmap bitmap = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.length, options);
+        if (bitmap == null) throw new IOException("E_WEB_MEDIA_TYPE");
+        try {
+            ByteArrayOutputStream preview = new ByteArrayOutputStream(WebPolicy.THUMB);
+            for (int quality : new int[]{80, 60}) {
+                cancel.throwIfCanceled();
+                preview.reset();
+                if (bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, quality, preview)
+                        && preview.size() > 0 && preview.size() <= WebPolicy.THUMB) return preview.toByteArray();
+            }
+            throw new IOException("E_WEB_SIZE");
+        } finally { bitmap.recycle(); }
     }
 
     private byte[] fetchImage(URI address, long generation, CancellationSignal cancel, int maximum) throws Exception {
@@ -397,6 +424,10 @@ final class WebNetwork {
             boolean keep = false;
             try {
                 HttpURLConnection connection = exchange.connection;
+                // Report the API origin that supplied the link, without its credential-bearing query.
+                if (site == WebSite.GELBOORU) {
+                    connection.setRequestProperty("Referer", site.api.resolve("/").toASCIIString());
+                }
                 if (range != null) connection.setRequestProperty("Range", range);
                 if (validator != null) connection.setRequestProperty("If-Match", validator);
                 int status = connection.getResponseCode();
@@ -428,7 +459,7 @@ final class WebNetwork {
         connection.setConnectTimeout(7000);
         connection.setReadTimeout(9000);
         connection.setRequestProperty("Accept-Encoding", "identity");
-        connection.setRequestProperty("User-Agent", "MediaGallery-Android/2.23 (optional web connector)");
+        connection.setRequestProperty("User-Agent", "MediaGallery-Android/2.24 (optional web connector)");
         synchronized (this) {
             current(generation);
             if (active.size() >= 6) throw new IOException("E_WEB_BUSY");
