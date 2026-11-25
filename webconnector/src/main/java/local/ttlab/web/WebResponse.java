@@ -11,6 +11,8 @@ import org.xmlpull.v1.XmlPullParserException;
 
 /** Parses the provider's documented XML envelope or a JSON response. */
 final class WebResponse {
+    private static final String[] FIELDS = {"id", "rating", "width", "height", "tags", "change",
+            "created_at", "file_url", "preview_url", "sample_url"};
     final JSONArray posts;
     private final long count, offset;
 
@@ -71,17 +73,34 @@ final class WebResponse {
                 offset = number(reader.getAttributeValue(null, "offset"));
             } else if (reader.getDepth() == 2 && root && "post".equals(reader.getName())) {
                 if (posts.length() >= WebPolicy.PAGE_SIZE) throw invalid();
-                JSONObject row = new JSONObject();
-                for (String key : new String[]{"id", "rating", "width", "height", "tags", "change",
-                        "created_at", "file_url", "preview_url", "sample_url"}) {
-                    String value = reader.getAttributeValue(null, key);
-                    if (value != null) row.put(key, value);
-                }
-                posts.put(row);
+                posts.put(xmlPost(reader));
             } else throw invalid();
         }
         if (!root) throw invalid();
         return new WebResponse(posts, count, offset);
+    }
+
+    private static JSONObject xmlPost(XmlPullParser reader) throws IOException, JSONException, XmlPullParserException {
+        JSONObject row = new JSONObject();
+        for (String key : FIELDS) {
+            String value = reader.getAttributeValue(null, key);
+            if (value != null) row.put(key, value);
+        }
+        while (true) {
+            int event = reader.nextToken();
+            if (event == XmlPullParser.END_TAG && reader.getDepth() == 2) return row;
+            if (event == XmlPullParser.END_DOCUMENT || event == XmlPullParser.DOCDECL) throw invalid();
+            if (event != XmlPullParser.START_TAG) continue;
+            if (reader.getDepth() != 3) throw invalid();
+            String field = reader.getName();
+            String value = reader.nextText();
+            for (String key : FIELDS) {
+                if (key.equals(field) && !row.has(key)) {
+                    row.put(key, value);
+                    break;
+                }
+            }
+        }
     }
 
     private static long number(String value) {

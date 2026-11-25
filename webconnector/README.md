@@ -29,7 +29,8 @@ encrypted. Rule34.xxx uses its existing encrypted library and cache.
 **Revocar y apagar** removes the selected site's API key and stops its requests.
 Web libraries have no export or permanent downloads.
 
-Gelbooru uses its documented XML catalogue and the media links it returns.
+Gelbooru reads the XML or JSON catalogue and dereferences individual post IDs
+through the JSON API. Media requests use the site's returned links.
 An approved preview can use the site's sample image when a thumbnail is
 missing. If the site's hotlink protection redirects an asset to its page, the
 viewer offers **Abrir en Gelbooru**, which opens the official post only

@@ -39,7 +39,8 @@ final class VariantTransport {
             if (connected) return;
             if (isApi()) {
                 file = catalogue().getBytes(StandardCharsets.UTF_8);
-                type = "gelbooru.com".equals(uri.getHost()) ? "text/xml" : "application/json";
+                type = "gelbooru.com".equals(uri.getHost()) && uri.getRawQuery().indexOf("json=1") < 0
+                        ? "text/xml" : "application/json";
                 status = 200;
                 Log.i("GalleryWebFixture", "Synthetic search response");
             } else {
@@ -104,7 +105,8 @@ final class VariantTransport {
                 String expectedTag = gelbooru ? "fixture_gelbooru" : "fixture_gallery";
                 if (gelbooru) {
                     if ((id == null && (tags == null || tags.contains("rating:") || tags.contains("sort:")))
-                            || (id != null && tags != null) || target.getQueryParameter("json") != null
+                            || (id != null && tags != null)
+                            || ((id != null) != "1".equals(target.getQueryParameter("json")))
                             || !"gel_fixture_key".equals(target.getQueryParameter("api_key"))) {
                         throw new IOException("Unexpected Gelbooru fixture parameters");
                     }
@@ -121,19 +123,22 @@ final class VariantTransport {
                     for (int n = high; n >= low; n--) rows.put(row(n + queryOffset, gelbooru));
                 }
                 if (!gelbooru) return rows.toString();
+                if (id != null) return new JSONObject().put("post", rows).toString();
                 StringBuilder xml = new StringBuilder("<?xml version=\"1.0\"?><posts count=\"")
                         .append(rows.length() == 0 ? 0 : 38).append("\" offset=\"")
                         .append("1".equals(page) ? 30 : 0).append("\">");
                 for (int index = 0; index < rows.length(); index++) {
                     JSONObject post = rows.getJSONObject(index);
-                    xml.append("<post");
+                    boolean elements = index % 2 != 0;
+                    xml.append(elements ? "<post>" : "<post");
                     java.util.Iterator<String> fields = post.keys();
                     while (fields.hasNext()) {
                         String field = fields.next();
-                        xml.append(" ").append(field).append("=\"")
-                                .append(android.text.TextUtils.htmlEncode(post.getString(field))).append("\"");
+                        String value = android.text.TextUtils.htmlEncode(post.getString(field));
+                        if (elements) xml.append("<").append(field).append(">").append(value).append("</").append(field).append(">");
+                        else xml.append(" ").append(field).append("=\"").append(value).append("\"");
                     }
-                    xml.append("/>");
+                    xml.append(elements ? "</post>" : "/>");
                 }
                 return xml.append("</posts>").toString();
             } catch (Exception invalid) { throw new IOException("Fixture failed"); }

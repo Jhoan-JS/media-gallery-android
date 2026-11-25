@@ -131,7 +131,13 @@ final class WebNetwork {
         String parameters = "pid=" + page + "&limit=" + WebPolicy.PAGE_SIZE;
         // Gelbooru supports an empty tag query and already orders it newest-first.
         parameters += "&tags=" + encode(query);
-        WebResponse response = request(config, generation, parameters, cancel);
+        WebResponse response;
+        try {
+            response = request(config, generation, parameters, site != WebSite.GELBOORU, cancel);
+        } catch (IOException format) {
+            if (site != WebSite.GELBOORU || !"E_WEB_CATALOGUE_FORMAT".equals(format.getMessage())) throw format;
+            response = request(config, generation, parameters, true, cancel);
+        }
         JSONArray rows = response.posts;
         ArrayList<Post> posts = new ArrayList<>();
         Set<Integer> encountered = new HashSet<>();
@@ -169,7 +175,7 @@ final class WebNetwork {
         if (post == null) {
             String parameters = "id=" + id + "&limit=1";
             if (!site.requiredRatingTag.isEmpty()) parameters += "&tags=" + encode(site.requiredRatingTag);
-            JSONArray rows = request(config, generation, parameters, cancel).posts;
+            JSONArray rows = request(config, generation, parameters, true, cancel).posts;
             if (rows.length() != 1) throw new IOException("E_WEB_MISSING");
             post = new Post(site, rows.getJSONObject(0));
             if (post.id != id) throw new IOException("E_WEB_MISSING");
@@ -188,14 +194,14 @@ final class WebNetwork {
     }
 
     private WebResponse request(WebSettings.Config config, long generation, String parameters,
-                              CancellationSignal cancel) throws Exception {
+                                boolean preferJson, CancellationSignal cancel) throws Exception {
         awaitSlot(generation, cancel, true);
-        String format = site == WebSite.GELBOORU ? "" : "&json=1";
+        String format = preferJson ? "&json=1" : "";
         URI url = URI.create(site.api + "?page=dapi&s=post&q=index" + format + "&" + parameters
                 + "&user_id=" + encode(config.user) + "&api_key=" + encode(config.key));
         try (Exchange exchange = open(url, generation, cancel)) {
             HttpURLConnection connection = exchange.connection;
-            connection.setRequestProperty("Accept", site == WebSite.GELBOORU ? "application/xml, text/xml, application/json" : "application/json");
+            connection.setRequestProperty("Accept", preferJson ? "application/json" : "application/xml, text/xml, application/json");
             int status = connection.getResponseCode();
             checkStatus(connection, status, true);
             if (status != 200) throw new IOException("E_WEB_HTTP_" + status);
