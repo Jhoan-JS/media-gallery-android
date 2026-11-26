@@ -12,6 +12,7 @@ import android.text.InputType;
 abstract class SecureActivity extends Activity {
     State state;private FrameLayout frame;private View curtain;private AlertDialog pinDialog,privateDialog;private volatile boolean resumed;private volatile long pinEpoch;
     private android.os.CancellationSignal biometricSignal;private boolean biometricOffered;private final java.util.List<android.app.Dialog> ownedDialogs=new java.util.ArrayList<>();
+    private android.window.OnBackInvokedCallback workspaceBackCallback;
     @Override protected void onCreate(Bundle b){
         super.onCreate(b);getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);getWindow().setHideOverlayWindows(true);
         getWindow().getDecorView().setOnApplyWindowInsetsListener((view,insets)->{android.graphics.Insets bars=insets.getInsets(android.view.WindowInsets.Type.systemBars());view.setPadding(bars.left,bars.top,bars.right,bars.bottom);return insets;});
@@ -19,6 +20,7 @@ abstract class SecureActivity extends Activity {
     }
     void content(View view){frame=new FrameLayout(this);frame.addView(view);super.setContentView(frame);}
     @Override protected void onResume(){super.onResume();resumed=true;if(state==null||frame==null)return;
+        updateWorkspaceBack();
         if(!Profiles.current()||!getSystemService(android.os.UserManager.class).isUserForeground()){state.unlocked=false;cover();new SecureDialogs.Builder(this).setTitle("Perfil no autorizado").setMessage("Abre esta instalación en owner o en uno de los perfiles de laboratorio autorizados.").setCancelable(false).setPositiveButton("Cerrar",(d,w)->finish()).show();return;}
         try{if(this instanceof RecoveryActivity&&state.securityVault.secret("pin")==null&&state.library.count(0,"",0,false)==0)return;}catch(Exception unavailable){cover();return;}
         if(!state.unlocked)lock();else uncover();
@@ -84,7 +86,26 @@ abstract class SecureActivity extends Activity {
     void onUnlocked(){}
     android.content.Intent sourceIntent(Class<?> target){return new android.content.Intent(this,target).putExtra("source",state.key);}
     @Override protected void onSaveInstanceState(Bundle out){if(state!=null)out.putString("source",state.key);super.onSaveInstanceState(out);}
-    @Override protected void onDestroy(){pinEpoch++;cancelBiometric();if(pinDialog!=null)pinDialog.dismiss();if(privateDialog!=null)privateDialog.dismiss();super.onDestroy();}
+    boolean hasWorkspaceBack(){return false;}
+    boolean handleWorkspaceBack(){return false;}
+    void updateWorkspaceBack(){
+        if(android.os.Build.VERSION.SDK_INT<33)return;
+        if(hasWorkspaceBack()&&workspaceBackCallback==null){
+            workspaceBackCallback=()->{if(!handleWorkspaceBack())finish();};
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT,workspaceBackCallback);
+        }else if(!hasWorkspaceBack())removeWorkspaceBack();
+    }
+    private void removeWorkspaceBack(){
+        if(android.os.Build.VERSION.SDK_INT>=33&&workspaceBackCallback!=null){
+            getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(workspaceBackCallback);
+            workspaceBackCallback=null;
+        }
+    }
+    @android.annotation.SuppressLint("GestureBackNavigation")
+    @Override public void onBackPressed(){
+        if(!hasWorkspaceBack()||!handleWorkspaceBack())super.onBackPressed();
+    }
+    @Override protected void onDestroy(){removeWorkspaceBack();pinEpoch++;cancelBiometric();if(pinDialog!=null)pinDialog.dismiss();if(privateDialog!=null)privateDialog.dismiss();super.onDestroy();}
     int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
     TextView text(String value,int size,int color){TextView view=new TextView(this);view.setText(value);view.setTextSize(size);view.setTextColor(color);return view;}
 }

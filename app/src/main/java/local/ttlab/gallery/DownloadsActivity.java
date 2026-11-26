@@ -21,21 +21,35 @@ public final class DownloadsActivity extends SecureActivity {
     private final BroadcastReceiver changed=new BroadcastReceiver(){@Override public void onReceive(Context c,Intent i){if(state==null||!state.key.equals(i.getStringExtra("source")))return;ui.removeCallbacks(poll);ui.post(poll);}};
     @Override protected void onCreate(Bundle state){
         super.onCreate(state);if(this.state==null)return;if(state!=null)page=Math.max(0,state.getInt("downloads-page",0));
-        LinearLayout root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setBackgroundColor(color(R.color.gallery_surface));
-        LinearLayout top=new LinearLayout(this);top.setGravity(Gravity.CENTER_VERTICAL);top.setPadding(dp(8),dp(10),dp(12),dp(4));
-        Button back=GalleryUi.button(this,"Volver",false);back.setOnClickListener(v->finish());top.addView(back);
-        TextView title=text("Descargas · "+SourceId.label(this.state.key),26,color(R.color.gallery_foreground));title.setPadding(dp(12),0,0,0);top.addView(title,new LinearLayout.LayoutParams(0,-2,1));ImageButton more=GalleryUi.icon(this,R.drawable.ic_gallery_more,"Opciones de descargas");more.setOnClickListener(v->showOptions());top.addView(more);root.addView(top);
-        summary=text("Leyendo la cola cifrada…",14,color(R.color.gallery_muted));summary.setPadding(dp(20),dp(8),dp(20),dp(8));root.addView(summary);
+        LinearLayout root = GalleryWorkspace.page(this);
+        LinearLayout top = GalleryWorkspace.toolbar(this, "Descargas", null, null);
+        ImageButton more = GalleryUi.icon(this, R.drawable.ic_gallery_more, "Opciones de descargas");
+        more.setOnClickListener(view -> showOptions());
+        top.addView(more);
+        root.addView(top);
+        GalleryWorkspace.sectionLabel(this, root, SourceId.label(this.state.key));
+        summary=text("Cargando descargas…",14,color(R.color.gallery_muted));summary.setPadding(dp(20),dp(8),dp(20),dp(8));root.addView(summary);
         LinearLayout commands=new LinearLayout(this);commands.setGravity(Gravity.CENTER_VERTICAL);commands.setPadding(dp(16),0,dp(16),dp(8));
         all=GalleryUi.button(this,"Reanudar todas",false);all.setEnabled(false);commands.addView(all,new LinearLayout.LayoutParams(0,-2,1));
-        saved=GalleryUi.button(this,"Archivos guardados",false);saved.setOnClickListener(v->startActivity(sourceIntent(MainActivity.class).putExtra("downloads",true).putExtra("savedGrid",true)));LinearLayout.LayoutParams savedLayout=new LinearLayout.LayoutParams(0,-2,1);savedLayout.leftMargin=dp(8);commands.addView(saved,savedLayout);root.addView(commands);
+        saved=GalleryUi.button(this,"Archivos guardados",false);saved.setOnClickListener(view -> navigate(GalleryWorkspace.DOWNLOAD_FILES));LinearLayout.LayoutParams savedLayout=new LinearLayout.LayoutParams(0,-2,1);savedLayout.leftMargin=dp(8);commands.addView(saved,savedLayout);root.addView(commands);
         notice=text("Las copias se guardan cifradas. Puedes pausar y continuar sin empezar de cero.",12,color(R.color.gallery_muted));notice.setPadding(dp(20),0,dp(20),dp(12));root.addView(notice);
         list=new ListView(this);list.setDividerHeight(0);list.setClipToPadding(false);list.setPadding(dp(16),0,dp(16),dp(8));adapter=new Rows();list.setAdapter(adapter);list.setOnScrollListener(new AbsListView.OnScrollListener(){public void onScrollStateChanged(AbsListView v,int state){scrolling=state!=SCROLL_STATE_IDLE;}public void onScroll(AbsListView v,int first,int visible,int total){}});root.addView(list,new LinearLayout.LayoutParams(-1,0,1));
         LinearLayout pages=new LinearLayout(this);pages.setPadding(dp(16),dp(4),dp(16),dp(12));pages.setGravity(Gravity.CENTER_VERTICAL);
         previous=GalleryUi.button(this,"Anterior",false);previous.setOnClickListener(v->{if(page>0){page--;list.setSelection(0);refresh();}});pages.addView(previous);
         pageLabel=text("",12,color(R.color.gallery_muted));pageLabel.setGravity(Gravity.CENTER);pages.addView(pageLabel,new LinearLayout.LayoutParams(0,-2,1));
-        next=GalleryUi.button(this,"Siguiente",false);next.setOnClickListener(v->{page++;list.setSelection(0);refresh();});pages.addView(next);root.addView(pages);content(root);
+        next=GalleryUi.button(this,"Siguiente",false);next.setOnClickListener(v->{page++;list.setSelection(0);refresh();});pages.addView(next);root.addView(pages);
+        GalleryWorkspace workspace = new GalleryWorkspace(this, root, this::navigate);
+        workspace.show(GalleryWorkspace.DOWNLOADS, null);
+        content(workspace.view());
     }
+    private void navigate(String section) {
+        if (!GalleryWorkspace.usable(this) || GalleryWorkspace.DOWNLOADS.equals(section)) return;
+        if (getIntent().hasExtra(GalleryWorkspace.SECTION)) {
+            setResult(RESULT_OK, new Intent().putExtra(GalleryWorkspace.SECTION, section));
+        } else UiSource.open(this, state.key, section);
+        finish();
+    }
+
     private int color(int id){return getColor(id);}
     @Override protected void onResume(){super.onResume();resumed=true;if(state!=null&&state.unlocked)refresh();}
     @Override void onUnlocked(){refresh();}

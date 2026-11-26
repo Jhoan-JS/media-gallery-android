@@ -3,6 +3,7 @@ package local.ttlab.gallery;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.ColorStateList;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.CancellationSignal;
 import android.os.Handler;
@@ -43,6 +44,9 @@ public final class WebLibraryActivity extends SecureActivity {
     private ProgressBar progress;
     private GalleryGridView grid;
     private PagedAdapter adapter;
+    private GalleryWorkspace workspace;
+    private String pendingSection;
+    private boolean refreshEndpoint = true;
     private String query = "", homeTags = "", pendingQuery;
     private int type, shape, watched, tileSize, collection, revision, nextPage, sparsePages;
     private boolean gelbooru, active, enabled, editingTerms, viewing, rendering, retryFirst;
@@ -67,22 +71,14 @@ public final class WebLibraryActivity extends SecureActivity {
         watched = preference("web-filter-watched", 2);
         tileSize = preference("web-tile-size", TILE_SIZES.length - 1);
         fitThumbnails = state.preferences.getBoolean("web-fit-thumbnails", false);
-        collection = gelbooru ? 0 : Math.max(0, Math.min(4, state.preferences.getInt("web-collection", 0)));
+        UiSource.remember(this, state.key);
+        pendingSection = saved == null ? GalleryWorkspace.destination(getIntent())
+                : saved.getString(GalleryWorkspace.SECTION, GalleryWorkspace.LIBRARY);
 
-        LinearLayout page = new LinearLayout(this);
-        page.setOrientation(LinearLayout.VERTICAL);
-        page.setBackgroundColor(getColor(R.color.gallery_surface));
-
-        LinearLayout header = row(page);
-        header.addView(UiSource.selector(this, this::leaveForSource));
-        header.addView(new View(this), new LinearLayout.LayoutParams(0, dp(56), 1));
-        savedSearches = GalleryUi.icon(this, R.drawable.ic_gallery_star, "Búsquedas guardadas");
-        savedSearches.setTooltipText("Búsquedas guardadas");
-        savedSearches.setOnClickListener(view -> showSavedSearches());
-        header.addView(savedSearches);
-        ImageButton options = GalleryUi.icon(this, R.drawable.ic_gallery_settings, "Ajustes de " + SourceId.label(state.key));
-        options.setOnClickListener(view -> options());
-        header.addView(options);
+        LinearLayout page = GalleryWorkspace.page(this);
+        LinearLayout header = GalleryWorkspace.toolbar(this, "Biblioteca", () -> navigate(GalleryWorkspace.LIBRARY), this::showSettings);
+        heading = header.findViewWithTag(GalleryWorkspace.TITLE);
+        page.addView(header);
 
         LinearLayout tools = row(page);
         LinearLayout.LayoutParams toolsParams = (LinearLayout.LayoutParams) tools.getLayoutParams();
@@ -129,26 +125,24 @@ public final class WebLibraryActivity extends SecureActivity {
         searchBar.addView(clear);
 
         LinearLayout context = row(page);
-        heading = text("", 22, getColor(R.color.gallery_foreground));
-        heading.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.NORMAL));
-        heading.setAccessibilityHeading(true);
-        context.addView(heading, new LinearLayout.LayoutParams(0, -2, 1));
+        context.addView(new View(this), new LinearLayout.LayoutParams(0, dp(42), 1));
+        savedSearches = GalleryUi.icon(this, R.drawable.ic_gallery_star, "Búsquedas guardadas");
+        savedSearches.setTooltipText("Búsquedas guardadas");
+        savedSearches.setOnClickListener(view -> showSavedSearches());
+        context.addView(savedSearches);
+        ImageButton options = GalleryUi.icon(this, R.drawable.ic_gallery_more, "Opciones de biblioteca");
+        options.setOnClickListener(view -> options());
+        context.addView(options);
         home = GalleryUi.button(this, "Inicio", false);
         home.setOnClickListener(view -> {
-            if (gelbooru || collection == 0) {
+            if (workspace.is(GalleryWorkspace.SAVED)) navigate(GalleryWorkspace.LIBRARY);
+            else {
                 setTerms("");
                 submit(true);
-            } else {
-                setTerms(query);
-                collection = 0;
-                persist();
-                render(-1);
             }
         });
         context.addView(home);
 
-        heading.setMinHeight(dp(40));
-        heading.setGravity(Gravity.CENTER_VERTICAL);
         progress = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
         progress.setIndeterminate(true);
         progress.setIndeterminateTintList(ColorStateList.valueOf(getColor(R.color.gallery_primary)));
@@ -191,9 +185,9 @@ public final class WebLibraryActivity extends SecureActivity {
             fetch(retryFirst);
         });
         footer.addView(retry, new LinearLayout.LayoutParams(-1, dp(48)));
-        page.setFocusableInTouchMode(true);
-        content(page);
-        page.requestFocus();
+        workspace = new GalleryWorkspace(this, page, this::navigate);
+        content(workspace.view());
+        workspace.view().requestFocus();
         paintControls();
     }
 
@@ -231,7 +225,8 @@ public final class WebLibraryActivity extends SecureActivity {
     }
 
     private int columns() {
-        int width = getResources().getConfiguration().screenWidthDp - 24;
+        Configuration size = getResources().getConfiguration();
+        int width = size.screenWidthDp - 24 - (GalleryWorkspace.usesRail(size) ? 100 : 0);
         int targetWidth = tileSize == 0 ? 150 : tileSize == 1 ? 110 : 82;
         return Math.max(2, Math.min(8, width / targetWidth));
     }
@@ -240,25 +235,26 @@ public final class WebLibraryActivity extends SecureActivity {
         if (!ready() || !enabled) return;
         String current = WebTags.normalized(terms.getText().toString());
         WebSavedSearches.show(this, gelbooru && current.isEmpty() ? homeTags : current, saved -> {
+            workspace.show(GalleryWorkspace.LIBRARY, null);
             setTerms(saved);
             submit(true);
         });
     }
 
     private void options() {
-        String[] labels = gelbooru
-                ? new String[]{"Tamaño de miniaturas", "Encuadre de miniaturas", "Actualizar publicaciones",
-                        "Etiquetas de inicio", "Colecciones de la sesión", "Conexión"}
-                : new String[]{"Tamaño de miniaturas", "Encuadre de miniaturas", "Actualizar publicaciones",
-                        "Colecciones", "Conexión"};
-        GalleryUi.menu(this, SourceId.label(state.key), labels, index -> {
-            if (index == 0) chooseTileSize();
-            else if (index == 1) chooseThumbnailFit();
-            else if (index == 2) submit(true);
-            else if (gelbooru && index == 3) showHomeTags();
-            else if (index == labels.length - 1) setup();
-            else showCollections();
-        });
+        GalleryUi.menu(this, "Opciones de biblioteca", new String[]{"Actualizar publicaciones", "Ajustes"},
+                selected -> { if (selected == 0) submit(true); else showSettings(); });
+    }
+
+    private void showSettings() {
+        GallerySettings.show(this, () -> navigate(GalleryWorkspace.SOURCES), rows -> {
+            GalleryWorkspace.link(this, rows, "Tamaño de miniaturas", "Grandes, medianas o compactas", this::chooseTileSize);
+            GalleryWorkspace.link(this, rows, "Encuadre de miniaturas", "Imagen completa o llenar la casilla", this::chooseThumbnailFit);
+            if (gelbooru) GalleryWorkspace.link(this, rows, "Etiquetas de inicio", "Personalizar la biblioteca reciente", this::showHomeTags);
+        }, () -> new SecureDialogs.Builder(this).setTitle("Protección local")
+                .setMessage(gelbooru ? "La búsqueda y los medios de esta sesión se quedan en memoria. Las búsquedas que guardas se cifran en el dispositivo."
+                        : "El catálogo y las miniaturas se guardan cifrados. El conector hace las peticiones a la fuente.")
+                .setPositiveButton("Entendido", null).show());
     }
 
     private void chooseThumbnailFit() {
@@ -284,23 +280,26 @@ public final class WebLibraryActivity extends SecureActivity {
                 .setSingleChoiceItems(TILE_SIZES, tileSize, (picker, selected) -> {
                     picker.dismiss();
                     if (!ready() || selected == tileSize) return;
-                    int first = grid.getFirstVisiblePosition();
-                    int top = grid.getChildCount() == 0 ? 0 : grid.getChildAt(0).getTop();
                     tileSize = selected;
                     persist();
-                    grid.setNumColumns(columns());
-                    if (grid.getCount() > 0) {
-                        grid.getViewTreeObserver().addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener() {
-                            public boolean onPreDraw() {
-                                grid.getViewTreeObserver().removeOnPreDrawListener(this);
-                                if (ready()) restoreGrid(first, top);
-                                return true;
-                            }
-                        });
-                    }
+                    resizeGrid();
                 }).setNegativeButton("Cerrar", null).create();
         trackPrivateDialog(dialog);
         dialog.show();
+    }
+
+    private void resizeGrid() {
+        int first = grid.getFirstVisiblePosition();
+        int top = grid.getChildCount() == 0 ? 0 : grid.getChildAt(0).getTop();
+        grid.setNumColumns(columns());
+        if (grid.getCount() == 0 || workspace.showingOverlay()) return;
+        grid.getViewTreeObserver().addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener() {
+            @Override public boolean onPreDraw() {
+                grid.getViewTreeObserver().removeOnPreDrawListener(this);
+                if (ready()) restoreGrid(first, top);
+                return true;
+            }
+        });
     }
 
     private void showFilters() {
@@ -386,20 +385,82 @@ public final class WebLibraryActivity extends SecureActivity {
         });
     }
 
-    private void showCollections() {
-        if (!enabled || request != null) return;
-        GalleryUi.menu(this, gelbooru ? "Colecciones de la sesión" : "Colecciones", COLLECTIONS, selected -> {
-            remember();
-            collection = selected;
-            persist();
-            render(-1);
-        });
+    private void navigate(String destination) {
+        if (!GalleryWorkspace.usable(this)) return;
+        remember();
+        switch (destination) {
+            case GalleryWorkspace.SOURCES:
+                workspace.show(destination, GalleryConnections.page(this, key ->
+                        UiSource.select(this, key, GalleryWorkspace.SOURCES, () -> { }),
+                        () -> navigate(GalleryWorkspace.LIBRARY), this::setup, this::showSettings));
+                return;
+            case GalleryWorkspace.SAVED:
+                workspace.show(destination, GalleryWorkspace.directory(this, "Guardado", SourceId.label(state.key), rows -> {
+                    GalleryWorkspace.link(this, rows, "Búsquedas guardadas", "Combinaciones de etiquetas de esta fuente", this::showSavedSearches);
+                    for (int i = 1; i < COLLECTIONS.length; i++) {
+                        final int selection = i;
+                        GalleryWorkspace.link(this, rows, COLLECTIONS[i], gelbooru ? "Disponible en esta sesión" : "", () -> {
+                            if (!enabled) return;
+                            collection = selection;
+                            workspace.show(GalleryWorkspace.SAVED, null);
+                            render(-1);
+                        });
+                    }
+                }, this::showSettings));
+                return;
+            case GalleryWorkspace.DOWNLOADS:
+                workspace.show(destination, GalleryWorkspace.directory(this, "Descargas", SourceId.label(state.key), rows -> {
+                    TextView info = text("La fuente web está disponible en el visor. Las descargas sin conexión se gestionan por biblioteca.", 16,
+                            getColor(R.color.gallery_muted));
+                    info.setPadding(dp(12), dp(10), dp(12), dp(16));
+                    rows.addView(info);
+                    GalleryWorkspace.link(this, rows, "Abrir fuentes", "Elegir una biblioteca con descargas",
+                            () -> navigate(GalleryWorkspace.SOURCES));
+                }, this::showSettings));
+                return;
+            default:
+                workspace.show(GalleryWorkspace.LIBRARY, null);
+                if (collection != 0) {
+                    collection = 0;
+                    render(-1);
+                } else queueNearbyLoad();
+        }
     }
 
-    private void leaveForSource() {
-        startActivity(new Intent(this, MainActivity.class).putExtra("source", UiSource.key(this))
-                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP));
-        finish();
+    private void applyPendingSection() {
+        if (pendingSection != null) {
+            String next = pendingSection;
+            pendingSection = null;
+            if (!GalleryWorkspace.LIBRARY.equals(next)) navigate(next);
+        } else if (workspace.is(GalleryWorkspace.SOURCES) && workspace.showingOverlay()) navigate(GalleryWorkspace.SOURCES);
+    }
+
+    @Override boolean hasWorkspaceBack() {
+        return workspace != null && (!workspace.is(GalleryWorkspace.LIBRARY) || UiSource.hasPrevious(this));
+    }
+
+    @Override boolean handleWorkspaceBack() {
+        if (!GalleryWorkspace.usable(this)) return false;
+        if (!workspace.is(GalleryWorkspace.LIBRARY)) {
+            navigate(GalleryWorkspace.LIBRARY);
+            return true;
+        }
+        return UiSource.back(this, () -> {});
+    }
+
+    @Override protected void onSaveInstanceState(Bundle out) {
+        super.onSaveInstanceState(out);
+        if (workspace == null) return;
+        for (String tab : new String[]{GalleryWorkspace.SOURCES, GalleryWorkspace.SAVED, GalleryWorkspace.DOWNLOADS}) {
+            if (workspace.is(tab)) out.putString(GalleryWorkspace.SECTION, tab);
+        }
+    }
+
+    @Override public void onConfigurationChanged(Configuration configuration) {
+        super.onConfigurationChanged(configuration);
+        if (workspace == null) return;
+        workspace.resize();
+        resizeGrid();
     }
 
     @Override protected void onResume() {
@@ -443,6 +504,7 @@ public final class WebLibraryActivity extends SecureActivity {
         if (!ready()) return;
         int generation = ++revision;
         State existing = live;
+        boolean recheck = refreshEndpoint;
         checking = true;
         if (gelbooru && (existing == null || existing.database.isShutdown())) notice("Abriendo Gelbooru…");
         paintControls();
@@ -451,6 +513,7 @@ public final class WebLibraryActivity extends SecureActivity {
             boolean connected = false;
             State opened = existing != null && !existing.database.isShutdown() ? existing : null;
             try {
+                if (recheck && existing == null) web.refreshEndpoint();
                 connected = web.enabled();
                 if (connected && gelbooru && opened == null) opened = State.startWebLive(this, state);
             } catch (Exception unavailable) {
@@ -466,6 +529,7 @@ public final class WebLibraryActivity extends SecureActivity {
                     return;
                 }
                 checking = false;
+                refreshEndpoint = false;
                 live = session;
                 enabled = linked;
                 if (!enabled) {
@@ -473,6 +537,7 @@ public final class WebLibraryActivity extends SecureActivity {
                     closeGrid();
                     notice(message);
                     paintControls();
+                    applyPendingSection();
                     return;
                 }
                 if (pendingQuery != null) {
@@ -484,21 +549,29 @@ public final class WebLibraryActivity extends SecureActivity {
                     clearPagination();
                     fetch(true);
                 } else render(-1);
+                applyPendingSection();
             });
         });
     }
 
     private static String connectorMessage(Exception unavailable) {
-        if (unavailable instanceof SecurityException) return "Instala Conector Web con la misma firma en este perfil.";
+        if (unavailable instanceof SecurityException) return "Instala Conector de fuentes con la misma firma en este perfil.";
         return WebSource.message(unavailable);
     }
 
     private void setup() {
         if (!ready()) return;
         try {
-            web.guard();
-            startActivityForResult(web.configure(), SETUP);
-        } catch (Exception unavailable) { notice(connectorMessage(unavailable)); }
+            Intent configuration = web.configure();
+            refreshEndpoint = true;
+            startActivityForResult(configuration, SETUP);
+        } catch (Exception unavailable) {
+            String message = connectorMessage(unavailable);
+            if (workspace.showingOverlay()) {
+                new SecureDialogs.Builder(this).setTitle("Configurar conexión").setMessage(message)
+                        .setPositiveButton("Entendido", null).show();
+            } else notice(message);
+        }
     }
 
     @Override protected void onActivityResult(int code, int result, Intent data) {
@@ -551,7 +624,7 @@ public final class WebLibraryActivity extends SecureActivity {
     }
 
     private void loadNearEnd() {
-        if (!ready() || checking || rendering || !enabled || request != null || collection != 0
+        if (!ready() || workspace.showingOverlay() || checking || rendering || !enabled || request != null || collection != 0
                 || adapter == null || nextPage < 0 || !pageError.isEmpty() || sparsePages >= WebCatalogue.PAGE_SCAN_LIMIT) return;
         int count = adapter.getCount();
         int visible = grid.getChildCount();
@@ -708,7 +781,7 @@ public final class WebLibraryActivity extends SecureActivity {
                     .putInt("web-filter-type", type).putInt("web-filter-shape", shape)
                     .putInt("web-filter-watched", watched).putInt("web-tile-size", tileSize)
                     .putBoolean("web-fit-thumbnails", fitThumbnails);
-            if (!gelbooru) edit.putString("web-query", query).putInt("web-collection", collection);
+            if (!gelbooru) edit.putString("web-query", query);
             edit.apply();
         } catch (RuntimeException unavailable) { notice("No se pudieron guardar los ajustes."); }
     }

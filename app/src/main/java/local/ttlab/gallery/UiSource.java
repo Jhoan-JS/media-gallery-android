@@ -1,40 +1,112 @@
 package local.ttlab.gallery;
-import android.app.Activity;
+
 import android.app.Dialog;
 import android.content.Context;
+import android.content.Intent;
 import android.view.Gravity;
-import android.widget.*;
+import android.view.Window;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
 
-/** Selected source is a preference; screens and jobs capture their own State. */
 final class UiSource {
-    static String key(Context c){String key=c.getSharedPreferences("gallery-appearance",Context.MODE_PRIVATE).getString("source","tato");try{return SourceId.require(key);}catch(IllegalArgumentException invalid){return "tato";}}
-    static String screenKey(Context c){return c instanceof SecureActivity&&((SecureActivity)c).state!=null?((SecureActivity)c).state.key:key(c);}
-    static boolean available(Context c){return true;}
-    static boolean isTato(Context c){return "tato".equals(screenKey(c));}
-    static boolean isLocal(Context c){return SourceId.local(screenKey(c));}
-    static String label(Context c){return SourceId.label(screenKey(c));}
-    static Button selector(Activity a,Runnable changed){Button b=GalleryUi.button(a,label(a),false);b.setContentDescription("Fuente: "+label(a)+". Cambiar fuente");b.setCompoundDrawablesRelativeWithIntrinsicBounds(0,0,R.drawable.ic_gallery_chevron_down,0);b.setCompoundDrawablePadding(GalleryUi.dp(a,6));b.setOnClickListener(v->choose(a,changed));return b;}
-    static void choose(Activity a,Runnable changed){
-        Dialog dialog=new SecureDialogs.Dialog(a);dialog.getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE);LinearLayout panel=new LinearLayout(a);panel.setOrientation(LinearLayout.VERTICAL);int pad=GalleryUi.dp(a,20);panel.setPadding(pad,pad,pad,pad);panel.setBackground(GalleryUi.background(a.getColor(R.color.gallery_surface_container),GalleryUi.dp(a,24)));
-        TextView heading=GalleryUi.text(a,"Fuentes",22,a.getColor(R.color.gallery_foreground));heading.setPadding(GalleryUi.dp(a,8),0,0,GalleryUi.dp(a,16));panel.addView(heading);
-        String[] keys={"tato","telegram","local"},notes={"Sesión independiente","Conector TG · sesión independiente","Copias cifradas en este teléfono"};
-        for(int i=0;i<keys.length;i++){
-            String key=keys[i],name=SourceId.label(key);LinearLayout row=new LinearLayout(a);row.setOrientation(LinearLayout.HORIZONTAL);row.setGravity(Gravity.CENTER_VERTICAL);row.setPadding(GalleryUi.dp(a,8),0,GalleryUi.dp(a,8),0);row.setMinimumHeight(GalleryUi.dp(a,72));row.setClickable(true);row.setFocusable(true);row.setContentDescription(name+", "+notes[i]);
-            LinearLayout copy=new LinearLayout(a);copy.setOrientation(LinearLayout.VERTICAL);copy.addView(GalleryUi.text(a,name,17,a.getColor(R.color.gallery_foreground)));copy.addView(GalleryUi.text(a,notes[i],13,a.getColor(R.color.gallery_muted)));row.addView(copy,new LinearLayout.LayoutParams(0,-2,1));
-            RadioButton radio=new RadioButton(a);radio.setChecked(key.equals(screenKey(a)));radio.setClickable(false);radio.setFocusable(false);radio.setImportantForAccessibility(android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO);row.addView(radio);panel.addView(row,new LinearLayout.LayoutParams(-1,GalleryUi.dp(a,72)));
-            row.setOnClickListener(v->{a.getSharedPreferences("gallery-appearance",Context.MODE_PRIVATE).edit().putString("source",key).apply();dialog.dismiss();changed.run();});
-        }
-        for(String key:new String[]{WebSource.KEY,WebSource.GELBOORU}){
-            Button web=GalleryUi.button(a,SourceId.label(key),false);
-            web.setOnClickListener(v->{
+    static final String[] SOURCES = {"tato", "telegram", WebSource.GELBOORU, WebSource.KEY, "local"};
+    private static String previousSource, switchedTo;
+
+    static String key(Context context) {
+        String key = context.getSharedPreferences("gallery-appearance", Context.MODE_PRIVATE)
+                .getString("source", "tato");
+        try { return SourceId.require(key); }
+        catch (IllegalArgumentException invalid) { return "tato"; }
+    }
+
+    static void remember(Context context, String key) {
+        context.getSharedPreferences("gallery-appearance", Context.MODE_PRIVATE)
+                .edit().putString("source", SourceId.require(key)).apply();
+    }
+
+    static String screenKey(Context context) {
+        return context instanceof SecureActivity && ((SecureActivity) context).state != null
+                ? ((SecureActivity) context).state.key : key(context);
+    }
+
+    static boolean available(Context context) { return true; }
+    static boolean isTato(Context context) { return "tato".equals(screenKey(context)); }
+    static boolean isLocal(Context context) { return SourceId.local(screenKey(context)); }
+    static String label(Context context) { return SourceId.label(screenKey(context)); }
+
+    static Button selector(SecureActivity activity, Runnable changed) {
+        Button button = GalleryUi.button(activity, label(activity), false);
+        button.setContentDescription("Fuente: " + label(activity) + ". Cambiar fuente");
+        button.setCompoundDrawablesRelativeWithIntrinsicBounds(0, 0, R.drawable.ic_gallery_chevron_down, 0);
+        button.setCompoundDrawablePadding(activity.dp(6));
+        button.setOnClickListener(view -> choose(activity, changed));
+        return button;
+    }
+
+    static void choose(SecureActivity activity, Runnable changed) {
+        if (!GalleryWorkspace.usable(activity)) return;
+        Dialog dialog = new SecureDialogs.Dialog(activity);
+        LinearLayout panel = GalleryWorkspace.page(activity);
+        panel.setPadding(activity.dp(16), activity.dp(8), activity.dp(16), activity.dp(12));
+        panel.setBackground(GalleryUi.background(activity.getColor(R.color.gallery_surface_container), activity.dp(22)));
+        GalleryWorkspace.sectionLabel(activity, panel, "Cambiar fuente");
+        for (String key : SOURCES) {
+            String detail = key.equals(screenKey(activity)) ? "Biblioteca actual" : GalleryConnections.sourceDetail(key);
+            GalleryWorkspace.link(activity, panel, SourceId.label(key), detail, () -> {
                 dialog.dismiss();
-                if(key.equals(screenKey(a)))return;
-                a.startActivity(WebLibraryActivity.intent(a,key));
-                if(a instanceof WebLibraryActivity)a.finish();
+                select(activity, key, GalleryWorkspace.LIBRARY, changed);
             });
-            panel.addView(web,new LinearLayout.LayoutParams(-1,GalleryUi.dp(a,48)));
         }
-        Button close=GalleryUi.button(a,"Cerrar",false);close.setOnClickListener(v->dialog.dismiss());panel.addView(close,new LinearLayout.LayoutParams(-1,GalleryUi.dp(a,48)));ScrollView scroll=new ScrollView(a);scroll.addView(panel);dialog.setContentView(scroll);dialog.show();
-        android.view.Window window=dialog.getWindow();if(window!=null){window.setBackgroundDrawableResource(android.R.color.transparent);window.setGravity(Gravity.BOTTOM);window.setLayout(-1,-2);}
+        Button close = GalleryUi.button(activity, "Cerrar", false);
+        close.setOnClickListener(view -> dialog.dismiss());
+        panel.addView(close, new LinearLayout.LayoutParams(-1, activity.dp(48)));
+        ScrollView scroll = new ScrollView(activity);
+        scroll.addView(panel);
+        dialog.setContentView(scroll);
+        dialog.show();
+        Window window = dialog.getWindow();
+        window.setBackgroundDrawableResource(android.R.color.transparent);
+        window.setGravity(Gravity.BOTTOM);
+        window.setLayout(-1, -2);
+    }
+
+    static void select(SecureActivity activity, String selected, String section, Runnable changed) {
+        String key = SourceId.require(selected);
+        if (!GalleryWorkspace.usable(activity) || key.equals(screenKey(activity))) return;
+        previousSource = screenKey(activity);
+        switchedTo = key;
+        switchTo(activity, key, section, changed);
+    }
+
+    static boolean hasPrevious(SecureActivity activity) {
+        return previousSource != null && screenKey(activity).equals(switchedTo);
+    }
+
+    static boolean back(SecureActivity activity, Runnable changed) {
+        if (!GalleryWorkspace.usable(activity) || !hasPrevious(activity)) return false;
+        String key = previousSource;
+        previousSource = switchedTo = null;
+        switchTo(activity, key, GalleryWorkspace.LIBRARY, changed);
+        return true;
+    }
+
+    private static void switchTo(SecureActivity activity, String key, String section, Runnable changed) {
+        remember(activity, key);
+        if (SourceId.web(key) || activity instanceof WebLibraryActivity) {
+            open(activity, key, section);
+            activity.finish();
+        } else {
+            changed.run();
+            activity.updateWorkspaceBack();
+        }
+    }
+
+    static void open(SecureActivity activity, String key, String section) {
+        Intent intent = SourceId.web(key) ? WebLibraryActivity.intent(activity, key)
+                : new Intent(activity, MainActivity.class).putExtra("source", SourceId.require(key));
+        intent.putExtra(GalleryWorkspace.SECTION, section);
+        if (!SourceId.web(key)) intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        activity.startActivity(intent);
     }
 }

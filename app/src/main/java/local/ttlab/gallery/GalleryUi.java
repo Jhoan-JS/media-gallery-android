@@ -40,18 +40,17 @@ final class GalleryUi {
         a.trackPrivateDialog(dialog);dialog.show();dialog.getWindow().setGravity(Gravity.BOTTOM);dialog.getWindow().setLayout(-1,-2);
     }
     static View navigation(Activity a,String selected,boolean rail,Consumer<String> select){
-        LinearLayout nav=new LinearLayout(a);nav.setOrientation(rail?LinearLayout.VERTICAL:LinearLayout.HORIZONTAL);nav.setGravity(rail?Gravity.TOP:Gravity.CENTER);nav.setBackgroundColor(a.getColor(R.color.gallery_surface));nav.setPadding(dp(a,4),dp(a,8),dp(a,4),dp(a,8));
-        boolean local=UiSource.isLocal(a);
-        String[] ids=local?new String[]{"library","import"}:new String[]{"library","channels","visual","downloads"};
-        String[] labels=local?new String[]{"Biblioteca","Importar"}:new String[]{"Biblioteca",UiSource.isTato(a)?"Canales":"Chats","Visual","Descargas"};
-        int[] icons=local?new int[]{R.drawable.ic_gallery_library,R.drawable.ic_gallery_download}:new int[]{R.drawable.ic_gallery_library,R.drawable.ic_gallery_channels,R.drawable.ic_gallery_visual,R.drawable.ic_gallery_download};
+        LinearLayout nav=new LinearLayout(a);nav.setOrientation(rail?LinearLayout.VERTICAL:LinearLayout.HORIZONTAL);nav.setGravity(rail?Gravity.TOP:Gravity.CENTER);nav.setBackgroundColor(a.getColor(R.color.gallery_surface_container));nav.setPadding(dp(a,4),dp(a,5),dp(a,4),dp(a,6));
+        String[] ids={GalleryWorkspace.LIBRARY,GalleryWorkspace.SAVED,GalleryWorkspace.DOWNLOADS,GalleryWorkspace.SOURCES};
+        String[] labels={"Biblioteca","Guardado","Descargas","Fuentes"};
+        int[] icons={R.drawable.ic_gallery_library,R.drawable.ic_gallery_star,R.drawable.ic_gallery_download,R.drawable.ic_gallery_channels};
         for(int i=0;i<ids.length;i++){
             String id=ids[i];boolean active=selected.equals(id);LinearLayout item=new LinearLayout(a);item.setOrientation(LinearLayout.VERTICAL);item.setGravity(Gravity.CENTER);item.setContentDescription(labels[i]+(active?", seleccionado":""));item.setSelected(active);item.setClickable(true);item.setFocusable(true);
             item.setBackground(new RippleDrawable(ColorStateList.valueOf(a.getColor(R.color.gallery_ripple)),null,background(0xffffffff,dp(a,12))));
             ImageView image=new ImageView(a);image.setImageResource(icons[i]);image.setImageTintList(ColorStateList.valueOf(a.getColor(active?R.color.gallery_primary:R.color.gallery_muted)));image.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);image.setPadding(dp(a,12),dp(a,3),dp(a,12),dp(a,3));
             if(active)image.setBackground(background(a.getColor(R.color.gallery_primary_container),dp(a,16)));item.addView(image,new LinearLayout.LayoutParams(dp(a,56),dp(a,30)));
-            TextView label=text(a,labels[i],11,a.getColor(active?R.color.gallery_foreground:R.color.gallery_muted));label.setSingleLine(true);label.setGravity(Gravity.CENTER);label.setPadding(0,dp(a,5),0,0);label.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);item.addView(label,new LinearLayout.LayoutParams(-1,-2));
-            nav.addView(item,rail?new LinearLayout.LayoutParams(-1,dp(a,76)):new LinearLayout.LayoutParams(0,dp(a,56),1));item.setOnClickListener(v->select.accept(id));
+            TextView label=text(a,labels[i],12,a.getColor(active?R.color.gallery_foreground:R.color.gallery_muted));label.setMaxLines(2);label.setGravity(Gravity.CENTER);label.setPadding(0,dp(a,3),0,0);label.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);item.addView(label,new LinearLayout.LayoutParams(-1,-2));item.setMinimumHeight(dp(a,rail?76:56));
+            nav.addView(item,rail?new LinearLayout.LayoutParams(-1,-2):new LinearLayout.LayoutParams(0,-2,1));item.setOnClickListener(v->select.accept(id));
         }return nav;
     }
 }

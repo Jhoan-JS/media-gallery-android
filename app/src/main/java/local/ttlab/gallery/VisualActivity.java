@@ -207,7 +207,13 @@ public final class VisualActivity extends SecureActivity {
     }
     private void open(Item item){if(!canUse())return;java.util.ArrayList<Long> order=new java.util.ArrayList<>();for(Entry entry:entries)if(entry.targetKind==null&&entry.item!=null&&order.size()<96)order.add(((long)entry.item.channel<<32)|(entry.item.id&0xffffffffL));long[] keys=new long[order.size()];for(int n=0;n<keys.length;n++)keys[n]=order.get(n);startActivity(sourceIntent(ViewerActivity.class).putExtra("channel",item.channel).putExtra("id",item.id).putExtra("viewer-keys",keys));}
     private void actions(Item item){new SecureDialogs.Builder(this).setTitle(item.label()).setItems(new String[]{"Abrir","Buscar similares","Guardar sin conexión"},(dialog,choice)->{if(!canUse())return;if(choice==0)open(item);else if(choice==1)startActivity(sourceIntent(VisualActivity.class).putExtra("channel",item.channel).putExtra("id",item.id));else DownloadService.start(this,state.key,item);}).show();}
-    private View navigation(boolean rail){return GalleryUi.navigation(this,"visual",rail,destination->{if("library".equals(destination))library(false);else if("downloads".equals(destination))library(true);else if("channels".equals(destination)){startActivity(sourceIntent(MainActivity.class).putExtra("section","channels").addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP));finish();}else if(detail()){startActivity(sourceIntent(VisualActivity.class).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));finish();}else load();});}
+    private View navigation(boolean rail) {
+        return GalleryUi.navigation(this, GalleryWorkspace.LIBRARY, rail, destination -> {
+            if (!GalleryWorkspace.usable(this)) return;
+            UiSource.open(this, state.key, destination);
+            finish();
+        });
+    }
     private void sourceChanged(){
         revision++;handler.removeCallbacks(searchChanged);handler.removeCallbacks(scanStatus);if(tatoState!=null)tatoState.visual.pauseAvailable();
         try{state=State.get(this,UiSource.key(this));getIntent().putExtra("source",state.key);if("tato".equals(state.key))tatoState=state;}catch(Exception unavailable){status.setText("No se pudo abrir esta fuente. Reintenta.");return;}
