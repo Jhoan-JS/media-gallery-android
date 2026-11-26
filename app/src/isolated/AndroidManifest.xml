@@ -1,0 +1,16 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="local.ttlab.permission.SOURCE_SOCKETS" />
+    <queries><package android:name="${isolatedHost}" /></queries>
+    <application>
+        <activity android:name="local.ttlab.telegram.MainActivity" android:exported="false"
+            android:theme="@android:style/Theme.Material.NoActionBar" />
+        <activity android:name="local.ttlab.telegram.AuthorizeActivity" android:exported="false"
+            android:windowSoftInputMode="adjustResize" android:theme="@android:style/Theme.Material.NoActionBar" />
+        <activity android:name="local.ttlab.web.SettingsActivity" android:exported="false"
+            android:theme="@android:style/Theme.Material.NoActionBar" />
+        <provider android:name="local.ttlab.telegram.TelegramProvider" android:authorities="${telegramAuthority}"
+            android:exported="false" android:grantUriPermissions="false" />
+        <provider android:name="local.ttlab.web.WebProvider" android:authorities="${telegramPackage}.web.bridge"
+            android:exported="false" android:grantUriPermissions="false" />
+    </application>
+</manifest>

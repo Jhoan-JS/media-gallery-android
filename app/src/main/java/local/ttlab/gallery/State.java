@@ -24,7 +24,7 @@ final class State {
         try{library=new Library(liveId==null?c.getDatabasePath(SourceId.database(key)):null,databaseKey);}
         finally{java.util.Arrays.fill(databaseKey,(byte)0);}
         webCatalogue=SourceId.web(key)?new WebCatalogue(library):null;
-        if(SourceId.web(key))source=new WebSource(c,vault,saved==null?library:saved.library,key,liveId);
+        if(SourceId.web(key))source=new WebSource(c,vault,saved==null?library:saved.library,key,liveId,saved==null?null:(WebSource)saved.source);
         else if(SourceId.local(key))source=new Source(c,vault,library,"","local.ttlab.no-connector",false,"Archivos propios"){
             @Override void guard()throws java.io.IOException{throw new java.io.FileNotFoundException("La copia local no está disponible");}
             @Override synchronized int rangeSize(){return CHUNK;}

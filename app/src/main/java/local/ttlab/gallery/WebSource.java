@@ -4,54 +4,158 @@ import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.ProviderInfo;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.CancellationSignal;
+import android.os.UserManager;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 final class WebSource extends Source {
-    static final String PACKAGE = "local.ttlab.web";
     static final String KEY = "web-rule-thirty-four";
     static final String GELBOORU = "web-gelbooru";
-    private static final Uri BRIDGE = Uri.parse("content://local.ttlab.web.bridge");
+    private static final String SETTINGS = "local.ttlab.web.SettingsActivity";
+    private static final String PROVIDER = "local.ttlab.web.WebProvider";
+    private static final Endpoint LEGACY = new Endpoint("local.ttlab.web", "local.ttlab.web.bridge",
+            "local.ttlab.permission.WEB");
+    private static final Endpoint COMMON = new Endpoint(BuildConfig.TELEGRAM_PACKAGE,
+            BuildConfig.TELEGRAM_PACKAGE + ".web.bridge", "local.ttlab.permission.TELEGRAM_WEB");
     private static final int RANGE = 4 * CHUNK;
+    private final Context context;
+    private final Vault vault;
     private final ContentResolver resolver;
-    private final android.content.pm.PackageManager packages;
+    private final PackageManager packages;
     private final boolean gelbooru;
     private final String liveId;
     private final ExecutorService cancellations = Executors.newSingleThreadExecutor();
+    private volatile Endpoint selected;
 
-    WebSource(Context context, Vault vault, Library library, String source, String liveId) {
-        super(context, vault, library, PACKAGE, BRIDGE.getAuthority(), true, "Web");
+    private static final class Endpoint {
+        final String pkg, permission;
+        final Uri bridge;
+
+        Endpoint(String pkg, String authority, String permission) {
+            this.pkg = pkg;
+            this.permission = permission;
+            this.bridge = Uri.parse("content://" + authority);
+        }
+    }
+
+    WebSource(Context context, Vault vault, Library library, String source, String liveId, WebSource saved) {
+        super(context, vault, library, LEGACY.pkg, LEGACY.bridge.getAuthority(), true, "Web");
+        this.context = context.getApplicationContext();
+        this.vault = vault;
         resolver = context.getContentResolver();
         packages = context.getPackageManager();
         gelbooru = GELBOORU.equals(source);
         this.liveId = liveId;
+        if (saved != null) selected = saved.selected;
     }
 
-    Intent configure() {
-        Intent settings = new Intent().setComponent(new ComponentName(PACKAGE, PACKAGE + ".SettingsActivity"));
-        if (gelbooru) settings.putExtra("site", "gelbooru");
+    Intent configure() throws Exception {
+        guardProfile();
+        Endpoint endpoint = trusted(COMMON) ? COMMON : LEGACY;
+        guard(endpoint);
+        ComponentName component = new ComponentName(endpoint.pkg, SETTINGS);
+        ActivityInfo info = packages.getActivityInfo(component, 0);
+        if (internal(endpoint) ? info.exported : !info.exported ||
+                (endpoint == COMMON && !endpoint.permission.equals(info.permission))) {
+            throw new IOException("E_WEB_CONNECTOR");
+        }
+        Intent settings = new Intent().setComponent(component).putExtra("site", gelbooru ? "gelbooru" : "rule34");
+        if (endpoint == COMMON) {
+            byte[] binding = vault.secret("source-account");
+            if (binding != null) {
+                try { settings.putExtra("expected-account", new String(binding, StandardCharsets.US_ASCII)); }
+                finally { Arrays.fill(binding, (byte) 0); }
+            }
+        }
         return settings;
     }
 
-    @Override void guard() throws Exception {
-        super.guard();
-        if (gelbooru && packages.getPackageInfo(PACKAGE, 0).getLongVersionCode() < 7) {
-            throw new IOException("E_WEB_UPDATE");
+    private void guardProfile() {
+        if (!Profiles.current() || !context.getSystemService(UserManager.class).isUserForeground()) {
+            throw new SecurityException("Abre la instalación en su usuario Android activo");
         }
     }
 
+    private boolean trusted(Endpoint endpoint) {
+        ProviderInfo info = packages.resolveContentProvider(endpoint.bridge.getAuthority(), 0);
+        if (info == null || !endpoint.pkg.equals(info.packageName) || !PROVIDER.equals(info.name) ||
+                info.grantUriPermissions) return false;
+        if (internal(endpoint)) return !info.exported && info.applicationInfo.uid == android.os.Process.myUid();
+        return info.exported
+                && endpoint.permission.equals(info.readPermission) && endpoint.permission.equals(info.writePermission)
+                && packages.checkSignatures(context.getPackageName(), endpoint.pkg) == PackageManager.SIGNATURE_MATCH
+                && packages.checkPermission(endpoint.permission, context.getPackageName()) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private boolean internal(Endpoint endpoint) {
+        return BuildConfig.ISOLATED_CLIENT && endpoint == COMMON && endpoint.pkg.equals(context.getPackageName());
+    }
+
+    private boolean legacySupportsSite() throws PackageManager.NameNotFoundException {
+        return !gelbooru || packages.getPackageInfo(LEGACY.pkg, 0).getLongVersionCode() >= 7;
+    }
+
+    private void guard(Endpoint endpoint) throws Exception {
+        guardProfile();
+        if (!trusted(endpoint)) throw new IOException("E_WEB_CONNECTOR");
+        if (endpoint == LEGACY && !legacySupportsSite()) throw new IOException("E_WEB_UPDATE");
+    }
+
+    // Only refresh on library entry or after explicit setup. Active viewers and live sessions stay pinned.
+    synchronized void refreshEndpoint() throws Exception {
+        guardProfile();
+        if (liveId != null && selected != null) return;
+        if (!trusted(COMMON)) {
+            selected = LEGACY;
+            return;
+        }
+        boolean configured;
+        try (Cursor status = status(COMMON)) {
+            configured = status.getInt(0) == 1 || status.getExtras().getBoolean("configured");
+        }
+        if (!configured && trusted(LEGACY) && legacySupportsSite()) {
+            try (Cursor status = status(LEGACY)) {
+                if (status.getInt(0) == 1) {
+                    selected = LEGACY;
+                    return;
+                }
+            } catch (IOException | SecurityException unavailable) { /* Use the common settings to reconnect. */ }
+        }
+        selected = COMMON;
+    }
+
+    private synchronized Endpoint endpoint() throws Exception {
+        if (selected == null) refreshEndpoint();
+        return selected;
+    }
+
+    @Override void guard() throws Exception { guard(endpoint()); }
+
+    private Cursor status(Endpoint endpoint) throws Exception {
+        Cursor row = query(endpoint.bridge.buildUpon().appendPath("status").build(), null, endpoint);
+        if (row.moveToFirst()) return row;
+        row.close();
+        throw new IOException("E_WEB_RESPONSE");
+    }
+
     boolean enabled() throws Exception {
-        try (Cursor row = query(BRIDGE.buildUpon().appendPath("status").build(), null)) {
-            return row.moveToFirst() && row.getInt(0) == 1;
+        try (Cursor row = status(endpoint())) {
+            return row.getInt(0) == 1;
         }
     }
 
@@ -99,8 +203,12 @@ final class WebSource extends Source {
     @Override protected Cursor query(Uri target) throws Exception { return query(target, null); }
 
     private Cursor query(Uri target, CancellationSignal cancel) throws Exception {
-        guard();
-        Cursor row = resolver.query(siteUri(target), null, null, null, null, cancel);
+        return query(target, cancel, endpoint());
+    }
+
+    private Cursor query(Uri target, CancellationSignal cancel, Endpoint endpoint) throws Exception {
+        guard(endpoint);
+        Cursor row = resolver.query(siteUri(target, endpoint), null, null, null, null, cancel);
         if (row == null) throw new IOException("E_WEB_CONNECTOR");
         try {
             String code = row.getExtras().getString("error");
@@ -151,11 +259,13 @@ final class WebSource extends Source {
                 .appendQueryParameter("offset", Long.toString(offset))
                 .appendQueryParameter("length", Integer.toString(length));
         int max = thumbnail ? CHUNK : length;
+        Endpoint endpoint = endpoint();
+        guard(endpoint);
         cancel.throwIfCanceled();
-        try (InputStream input = openStream(siteUri(builder.build()), cancel)) {
+        try (InputStream input = openStream(siteUri(builder.build(), endpoint), cancel)) {
             if (input == null) throw new IOException("E_WEB_CONNECTOR");
             cancel.setOnCancelListener(() -> cancellations.execute(() -> {
-                try { resolver.call(BRIDGE, "cancel", token, null); } catch (RuntimeException ignored) { }
+                try { resolver.call(endpoint.bridge, "cancel", token, null); } catch (RuntimeException ignored) { }
                 try { input.close(); } catch (IOException ignored) { }
             }));
             cancel.throwIfCanceled();
@@ -175,20 +285,23 @@ final class WebSource extends Source {
     }
 
     void beginLive() throws Exception {
-        guard();
-        android.os.Bundle reply = resolver.call(BRIDGE, "beginGelbooru", liveId, null);
+        Endpoint endpoint = endpoint();
+        guard(endpoint);
+        Bundle reply = resolver.call(endpoint.bridge, "beginGelbooru", liveId, null);
         if (reply == null || !reply.getBoolean("active")) throw new IOException("E_WEB_DISABLED");
     }
 
     void endLive() {
-        try { resolver.call(BRIDGE, "endGelbooru", liveId, null); }
+        Endpoint endpoint = selected;
+        try { if (endpoint != null) resolver.call(endpoint.bridge, "endGelbooru", liveId, null); }
         catch (RuntimeException ignored) { }
         cancellations.shutdown();
     }
 
-    private Uri siteUri(Uri target) {
-        if (!gelbooru) return target;
-        Uri.Builder builder = target.buildUpon().appendQueryParameter("site", "gelbooru");
+    private Uri siteUri(Uri target, Endpoint endpoint) {
+        Uri.Builder builder = target.buildUpon().authority(endpoint.bridge.getAuthority());
+        if (!gelbooru) return builder.build();
+        builder.appendQueryParameter("site", "gelbooru");
         if (liveId != null) builder.appendQueryParameter("live", liveId);
         return builder.build();
     }
@@ -226,7 +339,10 @@ final class WebSource extends Source {
         if (code.equals("E_WEB_VIDEO_UNVERIFIED_SIZE")) return "Gelbooru no confirmó los tramos de este video y es demasiado grande para cargarlo completo en memoria.";
         if (code.equals("E_WEB_MEDIA_VERSION")) return "El servidor no confirmó la versión del archivo.";
         if (code.contains("E_WEB_ACCESS")) return "El sitio rechazó el acceso. Revisa la autorización.";
-        if (code.contains("E_WEB_DISABLED") || code.contains("E_WEB_CONNECTOR")) return "Habilita la fuente en Conector Web.";
+        if (code.equals("E_WEB_CONNECTOR")) return "Instala Conector de fuentes con la misma firma en este perfil.";
+        if (code.equals("E_WEB_DISABLED")) return BuildConfig.ISOLATED_CLIENT
+                ? "Habilita la fuente desde Configurar conexión."
+                : "Habilita la fuente en Conector de fuentes.";
         if (code.contains("E_WEB_TAGS")) return "Usa de una a ocho etiquetas. Separa los términos con espacios.";
         if (code.contains("E_WEB_ACCOUNT")) return "La fuente vinculada cambió. Revisa la configuración.";
         return code.isEmpty() ? "No se pudo abrir el archivo web. Código WEB-LECTURA."

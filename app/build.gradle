@@ -1,26 +1,44 @@
 plugins { id 'com.android.application' }
 apply from: rootProject.file('signing.gradle')
+def isolatedClient = project.hasProperty('isolatedClient')
+def galleryId = (project.findProperty('qaApplicationId') ?: 'local.ttlab.gallery').toString()
+def isolatedHost = (project.findProperty('qaIsolatedHost') ?: 'org.im.ttalk.lab').toString()
+def tgId = isolatedClient ? galleryId : (project.findProperty('qaTelegramApplicationId') ?: 'local.ttlab.telegram').toString()
+def tgAuthority = isolatedClient ? galleryId+'.telegram.bridge' : (project.findProperty('qaTelegramAuthority') ?: tgId+'.bridge').toString()
 android {
     namespace 'local.ttlab.gallery'
     compileSdk 36
     defaultConfig {
-        applicationId (project.findProperty('qaApplicationId') ?: 'local.ttlab.gallery').toString()
+        applicationId galleryId
         manifestPlaceholders = [galleryLabel: project.hasProperty('qaApplicationId') ? 'Tato Lab · Verificación' : 'Tato Galería']
         manifestPlaceholders.fixtureAuthority = (project.findProperty('qaApplicationId') ?: 'local.ttlab.gallery').toString()+'.fixture.telegram'
-        manifestPlaceholders.telegramPackage = (project.findProperty('qaTelegramApplicationId') ?: 'local.ttlab.telegram').toString()
-        manifestPlaceholders.telegramAuthority = (project.findProperty('qaTelegramAuthority') ?: (project.findProperty('qaTelegramApplicationId') ?: 'local.ttlab.telegram').toString()+'.bridge').toString()
+        manifestPlaceholders.telegramPackage = tgId
+        manifestPlaceholders.telegramAuthority = tgAuthority
+        manifestPlaceholders.isolatedHost = isolatedHost
         minSdk 31
         targetSdk 36
-        versionCode 29
-        versionName '2.27'
-        buildConfigField 'String','TELEGRAM_PACKAGE','"'+(project.findProperty('qaTelegramApplicationId') ?: 'local.ttlab.telegram').toString()+'"'
-        buildConfigField 'String','TELEGRAM_AUTHORITY','"'+(project.findProperty('qaTelegramAuthority') ?: (project.findProperty('qaTelegramApplicationId') ?: 'local.ttlab.telegram').toString()+'.bridge').toString()+'"'
+        versionCode isolatedClient ? 32 : 30
+        versionName isolatedClient ? '2.30' : '2.28'
+        buildConfigField 'String','TELEGRAM_PACKAGE','"'+tgId+'"'
+        buildConfigField 'String','TELEGRAM_AUTHORITY','"'+tgAuthority+'"'
+        buildConfigField 'boolean','ISOLATED_CLIENT',isolatedClient.toString()
+        buildConfigField 'String','ISOLATED_HOST','"'+isolatedHost+'"'
         ndk { abiFilters (project.findProperty('uiQaAbi') ?: 'arm64-v8a').toString() }
         testInstrumentationRunner 'local.ttlab.gallery.GalleryChecks'
         testApplicationId ((project.findProperty('qaApplicationId') ?: 'local.ttlab.gallery').toString()+'.test')
     }
     buildTypes { release { minifyEnabled false } }
-    buildFeatures { buildConfig true }
+    buildFeatures { buildConfig true; aidl isolatedClient }
+    if (isolatedClient) {
+        sourceSets {
+            main.java.srcDirs 'src/isolated/java', rootProject.file('isolated/java'),
+                    rootProject.file('telegram/src/main/java/local/ttlab/telegram'),
+                    rootProject.file('webconnector/src/main/java')
+            main.aidl.srcDir rootProject.file('isolated/aidl')
+            debug.manifest.srcFile 'src/isolated/AndroidManifest.xml'
+            release.manifest.srcFile 'src/isolated/AndroidManifest.xml'
+        }
+    }
     compileOptions { sourceCompatibility JavaVersion.VERSION_11; targetCompatibility JavaVersion.VERSION_11 }
     androidResources { noCompress += ['tflite','onnx','f32'] }
 }

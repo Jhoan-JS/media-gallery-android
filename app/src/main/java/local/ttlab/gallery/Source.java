@@ -35,8 +35,14 @@ class Source {
     }
     private synchronized String account()throws Exception{
         if(account!=null)return account;
+        String accepted=verifiedAccount(true);
+        account=accepted;return accepted;
+    }
+    void checkAuthorization() throws Exception { verifiedAccount(false); }
+    private String verifiedAccount(boolean bind)throws Exception{
         guard();if(vault==null)vault=new Vault(context);
         byte[] secret=vault.secret("source-account");String stored=secret==null?null:new String(secret,java.nio.charset.StandardCharsets.US_ASCII);
+        if(secret!=null)java.util.Arrays.fill(secret,(byte)0);
         if(explicitConsent&&library==null)throw new SecurityException("Abre la galería para autorizar esta biblioteca");
         String offered;
         try(Cursor c=query(Uri.parse(base+"identity"))){
@@ -45,8 +51,8 @@ class Source {
         boolean hasCatalogue=false;
         if(library!=null)try(Cursor c=library.db.rawQuery("SELECT EXISTS(SELECT 1 FROM media LIMIT 1) OR EXISTS(SELECT 1 FROM channels LIMIT 1)",(String[])null)){c.moveToFirst();hasCatalogue=c.getInt(0)!=0;}
         String accepted=SourceAccount.accept(stored,offered,explicitConsent,hasCatalogue);
-        if(stored==null)vault.secret("source-account",accepted.getBytes(java.nio.charset.StandardCharsets.US_ASCII));
-        account=accepted;return accepted;
+        if(bind&&stored==null)vault.secret("source-account",accepted.getBytes(java.nio.charset.StandardCharsets.US_ASCII));
+        return accepted;
     }
     protected Uri uri(String path)throws Exception{return Uri.parse(base+path).buildUpon().appendQueryParameter("account",account()).build();}
     List<Channel> channels()throws Exception{
