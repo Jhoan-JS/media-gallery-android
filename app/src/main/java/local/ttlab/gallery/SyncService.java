@@ -13,6 +13,7 @@ public final class SyncService extends Service {
     static volatile boolean running;
     static volatile String message="Catálogo local · originales bajo demanda";
     private static final String CHANNEL="private-catalogue",IDLE="Catálogo local · originales bajo demanda";
+    private static final String TELEGRAM_WAIT_UNTIL="telegram-history-wait-until";
     private static final Map<String,String> messages=new ConcurrentHashMap<>();
     private static final Map<String,Integer> activeChannels=new ConcurrentHashMap<>();
     private static final Set<String> liveSources=ConcurrentHashMap.newKeySet();
@@ -20,6 +21,7 @@ public final class SyncService extends Service {
     private final Handler main=new Handler(Looper.getMainLooper());
     private final Map<String,Job> jobs=new LinkedHashMap<>();
     private volatile boolean closed;private volatile Job current;private int lastStart;
+    private long nextTelegramPage;
     static int currentChannel(String source){return activeChannels.getOrDefault(SourceId.require(source),0);}
     static boolean running(String source){return liveSources.contains(SourceId.require(source));}
     static String message(String source){return messages.getOrDefault(SourceId.require(source),IDLE);}
@@ -53,18 +55,31 @@ public final class SyncService extends Service {
         status(key,"Actualización en cola…");changed(this,key);worker.execute(()->synchronize(job));return START_NOT_STICKY;
     }
     private void synchronize(Job job){
-        current=job;String done;State state=null;int ending=4;
+        current=job;String done;State state=null;int ending=4;boolean telegram="telegram".equals(job.source);
         try{
             state=State.get(this,job.source);if(state.maintenance||!state.unlocked)throw new IllegalStateException("Abre y desbloquea la galería para actualizar");
             if(job.paused||closed){finish(job,"Sincronización pausada. Actualizar la continúa.");return;}
+            if(telegram){
+                long remaining=state.preferences.getLong(TELEGRAM_WAIT_UNTIL,0)-System.currentTimeMillis();
+                if(remaining>0){finish(job,ConnectionMessage.telegramWaitMessage((remaining+999)/1000)+" El avance está guardado.");return;}
+            }
             state.source.guard();update(job,"Descubriendo chats autorizados…",true);
-            List<Source.Channel> channels=state.source.channels();if(channels.isEmpty())throw new IllegalStateException("telegram".equals(job.source)?"No hay chats autorizados. Abre Conector TG, inicia sesión y elige los chats que quieres consultar.":"No hay canales autorizados disponibles en TestTes");
+            List<Source.Channel> channels=state.source.channels();if(channels.isEmpty())throw new IllegalStateException("telegram".equals(job.source)?"E_TELEGRAM_NOT_SELECTED":"No hay canales autorizados disponibles en TestTes");
             state.library.channels(channels);update(job,"Chats disponibles. Leyendo solo metadatos…",true);int total=0;
             for(Source.Channel channel:channels){
                 if(job.selected>0&&channel.id!=job.selected)continue;
                 job.channel=channel.id;activeChannels.put(job.source,channel.id);
                 Library.SyncCursor cursor=state.library.beginSync(channel.id);update(job,cursor.incremental?"Buscando novedades del chat…":"Buscando historial antiguo del chat…",true);
                 while(!job.paused&&!closed&&!state.maintenance){
+                    if(telegram){
+                        while(!job.paused&&!closed&&!state.maintenance){
+                            long remaining=nextTelegramPage-SystemClock.elapsedRealtime();
+                            if(remaining<=0)break;
+                            Thread.sleep(Math.min(250,remaining));
+                        }
+                        if(job.paused||closed||state.maintenance)break;
+                        nextTelegramPage=SystemClock.elapsedRealtime()+800;
+                    }
                     Source.Page page=state.source.page(channel.id,cursor.cursor);
                     if(job.paused||closed||state.maintenance)break;
                     boolean complete=state.library.commitPage(channel.id,cursor,page);total+=page.items.size();
@@ -74,7 +89,14 @@ public final class SyncService extends Service {
                 if(job.paused||closed||state.maintenance)break;
             }
             done=job.paused||closed||state.maintenance?"Sincronización pausada. Actualizar la continúa.":"Catálogo actualizado · originales bajo demanda";
-        }catch(Exception failure){ending=3;done=ConnectionMessage.describe(failure,Profiles.owner(),job.source);}
+        }catch(Exception failure){
+            ending=3;done=ConnectionMessage.describe(failure,Profiles.owner(),job.source);
+            long wait=telegram?ConnectionMessage.telegramWaitSeconds(failure):0;
+            if(wait>0&&state!=null){
+                state.preferences.edit().putLong(TELEGRAM_WAIT_UNTIL,System.currentTimeMillis()+wait*1000).commit();
+                ending=2;done+=" El avance está guardado.";
+            }
+        }
         if(job.paused||closed)ending=2;
         if(state!=null&&job.channel>0&&ending!=4)try{Library.ChatStatus last=state.library.chatStatuses().get(job.channel);if(last!=null&&last.state==1)state.library.syncState(job.channel,ending);}catch(Exception ignored){}
         finish(job,done);

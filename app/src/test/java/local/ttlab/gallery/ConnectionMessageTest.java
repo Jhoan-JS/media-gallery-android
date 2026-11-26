@@ -4,7 +4,7 @@ import static org.junit.Assert.*;
 public final class ConnectionMessageTest {
     @Test public void telegramLabDoesNotAskForTatoOrTestTes(){
         String message=ConnectionMessage.describe(new SecurityException("E_TELEGRAM_LOGIN_REQUIRED"),false,"telegram");
-        assertTrue(message.contains("Conector TG"));assertTrue(message.contains("inicia sesión"));assertFalse(message.contains("TestTes"));assertFalse(message.contains("Tato"));
+        assertTrue(message.contains(BuildConfig.ISOLATED_CLIENT?"Configurar conexión":"Conector TG"));assertTrue(message.contains("inicia sesión"));assertFalse(message.contains("TestTes"));assertFalse(message.contains("Tato"));
     }
     @Test public void telegramConsentIsSeparateFromTransientFailure(){
         assertTrue(ConnectionMessage.describe(new SecurityException("E_TELEGRAM_CONSENT_REQUIRED"),true,"telegram").contains("Autorizar conexión"));
@@ -13,7 +13,11 @@ public final class ConnectionMessageTest {
     }
     @Test public void telegramRateLimitRetainsCheckpointWithoutReauthorization(){
         String message=ConnectionMessage.describe(new java.io.IOException("read",new IllegalStateException("E_TELEGRAM_FLOOD_WAIT_120")),true,"telegram");
-        assertTrue(message.contains("120"));assertTrue(message.contains("guardado"));assertFalse(message.contains("Autorizar conexión"));
+        assertTrue(message.contains("120"));assertFalse(message.contains("actualizar"));assertFalse(message.contains("Autorizar conexión"));
+    }
+    @Test public void changedTelegramMediaDoesNotRequestReauthorization(){
+        String message=ConnectionMessage.describe(new java.io.IOException("E_MEDIA_CHANGED"),true,"telegram");
+        assertTrue(message.contains("archivo cambió"));assertFalse(message.contains("Autorizar conexión"));
     }
     @Test public void telegramChangedAccountKeepsLibraryAndTatoMessagesStayTheSame(){
         assertTrue(ConnectionMessage.describe(new SecurityException("E_SOURCE_ACCOUNT_CHANGED"),false,"telegram").contains("cuenta original"));
