@@ -89,6 +89,12 @@ func TestNewClientCannotTrustIdentityBeforeServerValidation(t *testing.T) {
 		t.Fatal("cold client trusted cached identity or persisted a pending login")
 	}
 }
+func TestBrokeredClientCannotFallBackWhenDialerIsMissing(t *testing.T) {
+	client, err := NewClientWithDialer(1, "00000000000000000000000000000000", &memoryStore{}, nil)
+	if client != nil || err == nil || err.Error() != "BAD_REQUEST" {
+		t.Fatalf("missing broker was accepted: %v", err)
+	}
+}
 func TestRevokedAuthorizationInvalidatesIdentityAndLocators(t *testing.T) {
 	c := &Client{userID: 17, state: "authorized", storage: &sessionStore{store: &memoryStore{}, authorized: true}, verified: map[string]verifiedMedia{"x": {Locator: locator{Reference: []byte{1}}, At: time.Now()}}}
 	if c.failure(tgerr.New(401, "AUTH_KEY_UNREGISTERED")).Error() != "AUTH_REQUIRED" || c.userID != 0 || c.state != "phone" || len(c.verified) != 0 || c.storage.authorized {

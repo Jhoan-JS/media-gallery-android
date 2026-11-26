@@ -12,15 +12,16 @@ import (
 )
 
 type request struct {
-	Op     string          `json:"op"`
-	Phone  string          `json:"phone"`
-	Code   string          `json:"code"`
-	Peer   peer            `json:"peer"`
-	Folder int             `json:"folder"`
-	Offset json.RawMessage `json:"offset"`
-	Limit  int             `json:"limit"`
-	Cursor int             `json:"cursor"`
-	ID     json.RawMessage `json:"id"`
+	Op       string          `json:"op"`
+	Phone    string          `json:"phone"`
+	Code     string          `json:"code"`
+	Peer     peer            `json:"peer"`
+	Folder   int             `json:"folder"`
+	Offset   json.RawMessage `json:"offset"`
+	Limit    int             `json:"limit"`
+	Cursor   int             `json:"cursor"`
+	ID       json.RawMessage `json:"id"`
+	Revision string          `json:"revision"`
 }
 
 func parseRequest(raw string) (request, error) {
@@ -55,9 +56,12 @@ func parseRequest(raw string) (request, error) {
 			r.Limit = 50
 		}
 		bad = r.Limit < 1 || r.Limit > 50 || r.Cursor < -1 || int64(r.Cursor) > math.MaxInt32 || r.Peer.validate() != nil
-	case "opened":
+	case "opened", "locate":
 		var id int64
 		bad = r.Peer.validate() != nil || json.Unmarshal(r.ID, &id) != nil || id < 1 || id > math.MaxInt32
+		if r.Op == "locate" {
+			bad = bad || len(r.Revision) != 64 || strings.Trim(r.Revision, "0123456789abcdef") != ""
+		}
 	case "sponsored":
 		bad = r.Peer.validate() != nil || r.Peer.Kind != "channel"
 	case "sponsored_view", "sponsored_click":
@@ -92,7 +96,7 @@ func safeError(e error) error {
 			return fmt.Errorf("FLOOD_WAIT_%d", max(1, rpc.Argument))
 		}
 		switch rpc.Type {
-        case "PHONE_NUMBER_INVALID", "PHONE_CODE_INVALID", "PHONE_CODE_EXPIRED", "PHONE_NUMBER_BANNED", "API_ID_INVALID", "API_ID_PUBLISHED_FLOOD", "PASSWORD_HASH_INVALID", "SESSION_PASSWORD_NEEDED", "PASSWORD_TOO_FRESH", "CHANNEL_PRIVATE", "CHAT_ADMIN_REQUIRED", "USER_BANNED_IN_CHANNEL", "MSG_ID_INVALID", "LOCATION_INVALID", "LIMIT_INVALID", "OFFSET_INVALID", "FILE_ID_INVALID", "AUTH_BYTES_INVALID", "DC_ID_INVALID", "CONNECTION_NOT_INITED", "CONNECTION_LAYER_INVALID", "LAYER_INVALID", "FILEREF_UPGRADE_NEEDED":
+		case "PHONE_NUMBER_INVALID", "PHONE_CODE_INVALID", "PHONE_CODE_EXPIRED", "PHONE_NUMBER_BANNED", "API_ID_INVALID", "API_ID_PUBLISHED_FLOOD", "PASSWORD_HASH_INVALID", "SESSION_PASSWORD_NEEDED", "PASSWORD_TOO_FRESH", "CHANNEL_PRIVATE", "CHAT_ADMIN_REQUIRED", "USER_BANNED_IN_CHANNEL", "MSG_ID_INVALID", "LOCATION_INVALID", "LIMIT_INVALID", "OFFSET_INVALID", "FILE_ID_INVALID", "AUTH_BYTES_INVALID", "DC_ID_INVALID", "CONNECTION_NOT_INITED", "CONNECTION_LAYER_INVALID", "LAYER_INVALID", "FILEREF_UPGRADE_NEEDED":
 			return errors.New(rpc.Type)
 		}
 		if strings.HasPrefix(rpc.Type, "FILE_REFERENCE") {

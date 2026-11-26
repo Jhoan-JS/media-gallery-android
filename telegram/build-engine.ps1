@@ -1,7 +1,8 @@
 param(
     [string] $GoHome = $env:TATO_GO_HOME,
     [string] $AndroidSdk = $env:ANDROID_HOME,
-    [string] $JavaHome = $env:JAVA_HOME
+    [string] $JavaHome = $env:JAVA_HOME,
+    [switch] $IsolatedWorker
 )
 $ErrorActionPreference = 'Stop'
 $project = Split-Path $PSScriptRoot -Parent
@@ -16,7 +17,9 @@ if (!$JavaHome) { throw 'Set JAVA_HOME to a JDK 21 installation' }
 $java = $JavaHome
 $goBin = if ($GoHome) { Join-Path $GoHome 'bin' } else { Join-Path $toolRoot 'go/bin' }
 $engine = Join-Path $PSScriptRoot 'engine'
-$out = Join-Path $engine 'dist/tgengine.aar'
+$out = if ($IsolatedWorker) { Join-Path $toolRoot 'isolated-tgengine-arm64.aar' } else { Join-Path $engine 'dist/tgengine.aar' }
+$target = if ($IsolatedWorker) { 'android/arm64' } else { 'android/arm64,android/amd64' }
+$abis = if ($IsolatedWorker) { @('arm64-v8a') } else { @('arm64-v8a','x86_64') }
 New-Item -ItemType Directory -Force $toolRoot, (Join-Path $toolRoot 'tmp'), (Split-Path $out -Parent) | Out-Null
 
 if (!(Test-Path (Join-Path $goBin 'go.exe'))) {
@@ -60,17 +63,42 @@ try {
         if ($LASTEXITCODE) { throw 'Host compilation failed' }
         & gomobile init
         if ($LASTEXITCODE) { throw 'gomobile init failed' }
-        & gomobile bind -trimpath '-target=android/arm64,android/amd64' -androidapi=31 -o $out '-ldflags=-s -w -X runtime.modinfo= -extldflags=-Wl,-z,max-page-size=16384' .
-        if ($LASTEXITCODE) { throw 'Android engine build failed' }
+        $bindDirectory = $engine
+        if ($IsolatedWorker) {
+            $module = & go list -m -f '{{.Dir}}' golang.org/x/sys
+            if ($LASTEXITCODE -or !$module) { throw 'Cannot resolve x/sys for Android CPU detection' }
+            $stage = Join-Path $env:GOTMPDIR ('isolated-' + [Guid]::NewGuid().ToString('N'))
+            $bindDirectory = (New-Item -ItemType Directory -Path (Join-Path $stage 'engine') -Force).FullName
+            Copy-Item -Path (Join-Path $engine '*.go'), (Join-Path $engine 'go.mod'), (Join-Path $engine 'go.sum') -Destination $bindDirectory
+            $sys = Join-Path $stage 'x-sys'
+            Copy-Item -LiteralPath $module -Destination $sys -Recurse
+            $source = Join-Path $sys 'cpu/cpu_linux_arm64.go'
+            $text = [IO.File]::ReadAllText($source).Replace("`r`n", "`n")
+            $fallback = 'if err := readHWCAP(); err != nil {'
+            if ([regex]::Matches($text, [regex]::Escape($fallback)).Count -ne 1 -or
+                !$text.Contains("import (`n`t`"strings`"")) { throw 'Review the x/sys ARM64 CPU detection change' }
+            # Android can deny auxv and its ARM translator cannot read the ID registers.
+            $fixed = $text.Replace("import (`n", "import (`n`t`"runtime`"`n").Replace($fallback,
+                "$fallback`n`t`tif runtime.GOOS == `"android`" {`n`t`t`treturn`n`t`t}")
+            (Get-Item -LiteralPath $source).IsReadOnly = $false
+            [IO.File]::WriteAllText($source, $fixed)
+            & go mod edit "-modfile=$(Join-Path $bindDirectory 'go.mod')" "-replace=golang.org/x/sys=$sys"
+            if ($LASTEXITCODE) { throw 'Cannot use the local x/sys build copy' }
+        }
+        Push-Location $bindDirectory
+        try {
+            & gomobile bind -trimpath "-target=$target" -androidapi=31 -o $out '-ldflags=-s -w -X runtime.modinfo= -extldflags=-Wl,-z,max-page-size=16384' .
+            if ($LASTEXITCODE) { throw 'Android engine build failed' }
+        } finally { Pop-Location }
     } finally { Pop-Location }
 
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $aar = [IO.Compression.ZipFile]::OpenRead($out)
     try {
-        foreach ($abi in @('arm64-v8a','x86_64')) {
+        foreach ($abi in $abis) {
             $entry = $aar.GetEntry("jni/$abi/libgojni.so")
             if (!$entry) { throw "Missing engine ABI $abi" }
-            $inspect = Join-Path $engine "dist/inspect/$abi"
+            $inspect = Join-Path (Split-Path $out -Parent) "inspect/$abi"
             New-Item -ItemType Directory -Force $inspect | Out-Null
             $library = Join-Path $inspect 'libgojni.so'
             [IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $library, $true)

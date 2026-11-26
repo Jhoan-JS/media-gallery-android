@@ -14,6 +14,7 @@ import (
 
 	"github.com/gotd/td/telegram"
 	"github.com/gotd/td/telegram/auth"
+	"github.com/gotd/td/telegram/dcs"
 	"github.com/gotd/td/tg"
 )
 
@@ -73,6 +74,18 @@ func (c *Client) cached(key string, offset int64) (locator, bool) {
 
 // NewClient performs no network request. Credentials are supplied locally at runtime.
 func NewClient(apiID int64, apiHash string, store Store) (*Client, error) {
+	return newClient(apiID, apiHash, store, nil)
+}
+
+// NewClientWithDialer uses only sockets from dialer. It performs no network request.
+func NewClientWithDialer(apiID int64, apiHash string, store Store, dialer SocketDialer) (*Client, error) {
+	if dialer == nil {
+		return nil, errors.New("BAD_REQUEST")
+	}
+	return newClient(apiID, apiHash, store, brokeredResolver(dialer))
+}
+
+func newClient(apiID int64, apiHash string, store Store, resolver dcs.Resolver) (*Client, error) {
 	if apiID < 1 || apiID > math.MaxInt32 || len(apiHash) != 32 || store == nil {
 		return nil, errors.New("BAD_REQUEST")
 	}
@@ -83,7 +96,7 @@ func NewClient(apiID int64, apiHash string, store Store) (*Client, error) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	c := &Client{ctx: ctx, cancel: cancel, ready: make(chan struct{}), done: make(chan struct{}), state: "phone", storage: &sessionStore{store: store}, pools: map[int]telegram.CloseInvoker{}, sponsored: map[string][]byte{}, verified: map[string]verifiedMedia{}}
-	c.native = telegram.NewClient(int(apiID), apiHash, telegram.Options{SessionStorage: c.storage, NoUpdates: true, DialTimeout: 15 * time.Second, ExchangeTimeout: 20 * time.Second, Device: telegram.DeviceConfig{DeviceModel: "Tato Galería", SystemVersion: "Android", AppVersion: "Conector TG 1.0", SystemLangCode: "es", LangCode: "es"}})
+	c.native = telegram.NewClient(int(apiID), apiHash, telegram.Options{SessionStorage: c.storage, Resolver: resolver, NoUpdates: true, DialTimeout: 15 * time.Second, ExchangeTimeout: 20 * time.Second, Device: telegram.DeviceConfig{DeviceModel: "Tato Galería", SystemVersion: "Android", AppVersion: "Conector TG 1.0", SystemLangCode: "es", LangCode: "es"}})
 	c.api = c.native.API()
 	return c, nil
 }
@@ -229,6 +242,8 @@ func (c *Client) Request(raw string) (string, error) {
 			out, e = c.chats(ctx, r)
 		case "page":
 			out, e = c.page(ctx, r)
+		case "locate":
+			out, e = c.locate(ctx, r)
 		case "opened":
 			e = c.opened(ctx, r)
 			out = map[string]bool{"ok": e == nil}

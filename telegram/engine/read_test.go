@@ -106,6 +106,26 @@ func (m messageInvoker) Invoke(_ context.Context, in bin.Encoder, out bin.Decode
 	out.(*tg.MessagesMessagesBox).Messages = &tg.MessagesMessages{Messages: []tg.MessageClass{m.message}}
 	return nil
 }
+func TestLocateRestoresOnlyTheSameUnprotectedMedia(t *testing.T) {
+	p := peer{Kind: "group", ID: "1"}
+	doc := &tg.Document{ID: 2, AccessHash: 3, DCID: 1, Size: 3, MimeType: "video/mp4", FileReference: []byte{8, 9}}
+	msg := &tg.Message{ID: 7, PeerID: &tg.PeerChat{ChatID: 1}, Media: &tg.MessageMediaDocument{Document: doc}}
+	original := messageItem(p, msg)
+	c := &Client{api: tg.NewClient(messageInvoker{message: msg})}
+	r := request{Op: "locate", Peer: p, ID: []byte("7"), Revision: original.Revision}
+	restored, err := c.locate(context.Background(), r)
+	if err != nil || restored.ID != 7 || !bytes.Equal(restored.Locator.Reference, doc.FileReference) {
+		t.Fatalf("legacy item not recovered: %v", err)
+	}
+	doc.ID = 4
+	if _, err = c.locate(context.Background(), r); err == nil || err.Error() != "MEDIA_CHANGED" {
+		t.Fatalf("changed file was accepted: %v", err)
+	}
+	msg.Noforwards = true
+	if _, err = c.locate(context.Background(), r); err == nil {
+		t.Fatal("protected media was accepted")
+	}
+}
 func TestDownloadFollowsAuthorizedFileDCMigrationOnce(t *testing.T) {
 	first := &retryFileInvoker{fail: tgerr.New(303, "FILE_MIGRATE_2")}
 	second := &retryFileInvoker{fileInvoker: fileInvoker{data: []byte{1, 2, 3}}}
