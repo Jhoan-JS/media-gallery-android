@@ -75,7 +75,7 @@ APKs do not update the public production-signed release or old lab installations
 
 ## Isolated sources
 
-Gallery 2.30 can use the project's isolated source worker for Telegram and Web.
+Gallery 2.31 can use the project's isolated source worker for Telegram and Web.
 The worker handles network protocol traffic and Gallery keeps the encrypted
 session and settings. Existing sessions and web credentials remain in their
 original packages. Set up the same accounts from **Fuentes** when moving to

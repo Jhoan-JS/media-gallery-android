@@ -11,13 +11,13 @@ you will see on screen.
 
 ## Get started
 
-Gallery **2.30** pairs with **Conector de fuentes 3.1**. The pair targets
+Gallery **2.31** pairs with **Conector de fuentes 3.2**. The pair targets
 **ARM64 (`arm64-v8a`)** phones and tablets running **Android 12L or later**.
 
-1. Open the [2.30 release](https://github.com/Jhoan-JS/media-gallery-android/releases/tag/gallery-v2.30-sources-v3.1)
+1. Open the [2.31 release](https://github.com/Jhoan-JS/media-gallery-android/releases/tag/gallery-v2.31-sources-v3.2)
    and check the files against `SHA256SUMS.txt`.
-2. To use online sources, install `ConectorFuentes-3.1-arm64-v8a.apk` first.
-   Install `MediaGallery-2.30-arm64-v8a.apk` in the same Android user or profile.
+2. To use online sources, install `ConectorFuentes-3.2-arm64-v8a.apk` first.
+   Install `MediaGallery-2.31-arm64-v8a.apk` in the same Android user or profile.
 3. Open the gallery and set a PIN.
 4. Choose **Archivos propios** (Local files), then **Importar** (Import), to
    copy photos and videos you select into encrypted app storage.
@@ -36,8 +36,11 @@ If no APKs are attached to a release, build from source using the
 [build guide](docs/build.md). Debug builds are for local testing and use a
 different certificate from the public release.
 
-The current gallery allows Android user IDs 0, 14, and 15. User 0 is the usual
-primary user; other secondary user IDs are not supported by this version.
+Install both APKs in the active main or secondary Android user. Each user has
+its own library and source sessions. For Tato, sign in to your account in
+**Conector de fuentes**, then choose **Fuentes**, **Tato**, **Configurar conexión**
+and **Autorizar conexión** in the gallery. Review and confirm the account.
+Install both updates over the previous production pair to keep your data.
 
 ## Optional web sources
 
@@ -53,7 +56,7 @@ next to search, and thumbnail size and framing are in **Ajustes**. Use
 **Búsquedas guardadas** or the star in a web library to reuse named searches.
 The [connector guide](webconnector/README.md) covers setup, privacy and limits.
 
-The optional isolated build of Gallery 2.30 brings Telegram and web setup into
+The optional isolated build of Gallery 2.31 brings Telegram and web setup into
 **Fuentes**. It runs source networking through a compatible companion and keeps
 its credentials in encrypted Gallery storage. See the [build guide](docs/build.md#isolated-sources)
 for the open source components that support this configuration.
@@ -69,7 +72,7 @@ Telegram browsing requires a Telegram account, your own API ID and API hash,
 and permission for the chats you select. The connector keeps a separate
 session from the official Telegram app.
 
-Tato requires a compatible connector and account authorization. The 3.1 release
+Tato requires a compatible connector and account authorization. The 3.2 release
 asset bundles the Tato runtime with the project's source services. Git contains
 the gallery's consumer and the [local interface documentation](connectors/tato/README.md).
 

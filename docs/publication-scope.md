@@ -25,7 +25,7 @@ An installable Tato connector requires an implementation supplied by the
 client owner or an otherwise authorized distribution.
 
 The Git source tree documents the [local interface](../connectors/tato/README.md).
-The separately distributed Conector de fuentes 3.1 APK contains the third-party
+The separately distributed Conector de fuentes 3.2 APK contains the third-party
 Tato runtime and its bundled notices. The source tree excludes its client files,
 patches, private packaging tools, and session material.
 

@@ -5,7 +5,7 @@ Tato connector. The consumer is in
 [Source.java](../../app/src/main/java/local/ttlab/gallery/Source.java).
 
 The Git source tree documents this interface and includes the Gallery-side
-consumer. Sources Connector 3.1 is distributed separately as a release APK.
+consumer. Sources Connector 3.2 is distributed separately as a release APK.
 Its bundled Tato runtime and notices retain their own terms. The client files,
 signing material, patches, and packaging tools stay outside the source tree.
 
@@ -15,8 +15,11 @@ The consumer uses the `local.ttlab.bridge` authority. The provider requires
 the signature permission `local.ttlab.permission.GALLERY` and validates the
 gallery package, the same Android user, and consent for the active account.
 
-The gallery requests authorization through a connector activity using
-`startActivityForResult`. Selection and revocation belong to the connector.
+The gallery opens `local.ttlab.tato.GalleryAuthorizeActivity` using
+`startActivityForResult`. The user reviews the signed-in account and grants
+access in their active Android user. Each Android user's connector stores
+its own grant in app-private storage protected by Android Keystore.
+Changing the selected account or signing out stops reads for the previous grant.
 
 The `account` field is an opaque identity for the authorized account.
 Every operation must confirm it still matches the linked account. Media

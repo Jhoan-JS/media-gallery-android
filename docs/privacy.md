@@ -34,7 +34,7 @@ selection requires authorization again. Intentionally opening media can report
 reads and views to Telegram. Secret, ephemeral, and protected content is excluded.
 
 The Tato interface requires a compatible, separately authorized provider.
-Sources Connector 3.1 bundles that runtime as a release asset. The Git source
+Sources Connector 3.2 bundles that runtime as a release asset. The Git source
 tree only documents the Tato provider interface and the Gallery-side integration.
 
 ## Visual processing
