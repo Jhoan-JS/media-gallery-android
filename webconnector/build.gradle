@@ -10,7 +10,9 @@ android {
         targetSdk 36
         versionCode 7
         versionName '1.6'
+        buildConfigField 'boolean', 'WEB_FIXTURE', 'false'
     }
+    sourceSets.main.java.srcDir 'src/legacy/java'
     buildFeatures { buildConfig true }
     buildTypes {
         debug {

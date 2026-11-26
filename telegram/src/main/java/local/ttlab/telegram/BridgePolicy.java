@@ -3,7 +3,7 @@ package local.ttlab.telegram;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 
-final class BridgePolicy {
+public final class BridgePolicy {
     static final int MAX_RANGE=524288;
     static boolean range(long offset,int length,long size) {
         return offset>=0&&length>0&&length<=MAX_RANGE&&size>=0&&offset<=size&&length<=size-offset;
@@ -20,7 +20,7 @@ final class BridgePolicy {
         if("group".equals(kind)&&(value==null||value.isEmpty()))return "0";
         if(!decimal(value,true))throw new IllegalArgumentException("E_TELEGRAM_PROTOCOL_HASH");return value;
     }
-    static String error(Throwable failure) {
+    public static String error(Throwable failure) {
         String code=failure.getMessage();
         if(code==null)return "E_TELEGRAM_UNAVAILABLE";
         if(code.matches("E_[A-Z0-9_]{1,80}"))return code;

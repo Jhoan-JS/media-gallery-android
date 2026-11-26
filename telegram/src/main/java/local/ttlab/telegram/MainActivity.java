@@ -3,9 +3,12 @@ package local.ttlab.telegram;
 import android.app.AlertDialog;
 import android.os.Bundle;
 import android.text.InputType;
+import android.view.View;
+import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import java.nio.CharBuffer;
@@ -18,9 +21,11 @@ import java.util.Map;
 
 public final class MainActivity extends SecureActivity {
     private ConnectorRuntime runtime;
-    private final Map<Integer,CheckBox> choices=new LinkedHashMap<>();
+    private final Map<Integer,TextView> choices=new LinkedHashMap<>();
     private Object next;
     private int folder;
+    private boolean incomplete;
+    private Button retryChats;
     private LinearLayout chatRows;
     @Override public void onCreate(Bundle ignored) {
         super.onCreate(null);
@@ -87,32 +92,63 @@ public final class MainActivity extends SecureActivity {
         add(text("Conexión inicial: abre Telegram en Tato Galería y confirma allí la autorización. Las aperturas intencionadas informan lectura y vistas a Telegram. El contenido protegido, efímero o secreto no se exporta.",14,MUTED),24,12);
     }
     private void selector() {
-        choices.clear();folder=0;next=null;
+        choices.clear();folder=0;next=null;incomplete=false;
         screen("Chats de esta biblioteca","Elige explícitamente canales, grupos, chats privados o Mensajes guardados. Guardar la selección requiere autorizar otra vez desde la galería.");
+        retryChats=button("Reintentar carga",this::more,false);
         chatRows=new LinearLayout(this);chatRows.setOrientation(LinearLayout.VERTICAL);add(chatRows,0,16);
-        try(android.database.Cursor selected=runtime.db.channels(runtime.db.bound())) {while(selected.moveToNext())chatRow(selected.getInt(0),selected.getString(1),"Seleccionado",true);}
-        button("Cargar más chats",this::more,false);
+        try(android.database.Cursor selected=runtime.db.channels(runtime.db.bound())) {
+            while(selected.moveToNext())chatRow(selected.getInt(0),selected.getString(1)+"\nSeleccionado",true,false);
+        }
         button("Guardar selección",()->{
-            ArrayList<Integer> selected=new ArrayList<>();for(Map.Entry<Integer,CheckBox> row:choices.entrySet())if(row.getValue().isChecked())selected.add(row.getKey());
+            ArrayList<Integer> selected=new ArrayList<>();
+            for(Map.Entry<Integer,TextView> row:choices.entrySet()) {
+                if(row.getValue() instanceof CheckBox && ((CheckBox)row.getValue()).isChecked())selected.add(row.getKey());
+            }
             task(()->runtime.execute(null,()->{String account=runtime.authorized();runtime.db.select(account,selected);return runtime.status();}),this::connected);
         },true);
         button("Volver sin guardar",this::refresh,false);more();
     }
     private void more() {
-        if(folder>1){feedback.setTextColor(MUTED);feedback.setText("Ya se cargaron los chats y los archivados disponibles.");return;}
         int requestedFolder=folder;Object requestedOffset=next;
         task(()->runtime.execute(null,()->runtime.chats(requestedFolder,requestedOffset)),result->{
-            JSONArray chats=result.optJSONArray("chats");if(chats!=null)for(int i=0;i<chats.length();i++) {
-                JSONObject chat=chats.optJSONObject(i);if(chat==null)continue;int id=chat.optInt("id");if(choices.containsKey(id))continue;
-                chatRow(id,chat.optString("title"),kind(chat.optString("kind")),chat.optBoolean("selected"));
+            JSONArray chats=result.optJSONArray("chats");
+            for(int i=0;chats!=null&&i<chats.length();i++) {
+                JSONObject chat=chats.optJSONObject(i);if(chat==null)continue;
+                int id=chat.optInt("id");
+                boolean selected=chat.optBoolean("selected"),unavailable=chat.optBoolean("unavailable");
+                String label=chat.optString("title")+"\n"+kind(chat)+(unavailable?" · Restringido para la galería":"");
+                TextView existing=choices.get(id);
+                if(existing==null)chatRow(id,label,selected,unavailable);
+                else if(selected)existing.setText(label);
             }
+            incomplete|=result.optBoolean("incomplete");
             next=result.opt("next");if(next==null||next==JSONObject.NULL){next=null;folder++;}
-            feedback.setTextColor(MUTED);feedback.setText(choices.isEmpty()?"No hay chats seleccionables en esta página. Puedes cargar más.":choices.size()+" chats cargados; marca los que quieras incluir.");
+            if(folder<=1){
+                more();
+                return;
+            }
+            retryChats.setVisibility(View.GONE);
+            feedback.setTextColor(incomplete?ERROR:MUTED);
+            feedback.setText(incomplete?"Se cargaron "+choices.size()+" chats. Telegram no entregó la lista completa. Vuelve a abrir Elegir chats para reintentar."
+                    :choices.size()+" chats cargados, incluidos los archivados.");
         });
     }
-    private void chatRow(int id,String title,String kind,boolean checked) {
-        CheckBox row=new CheckBox(this);row.setText(title+"\n"+kind);row.setTextColor(TEXT);row.setTextSize(16);row.setMinHeight(dp(64));row.setButtonTintList(android.content.res.ColorStateList.valueOf(PRIMARY));row.setChecked(checked);row.setSaveEnabled(false);row.setFilterTouchesWhenObscured(true);
+    private void chatRow(int id,String label,boolean checked,boolean unavailable) {
+        TextView row;
+        if(unavailable&&!checked){
+            row=text(label,16,MUTED);
+            row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        }else{
+            CheckBox checkbox=new CheckBox(this);
+            checkbox.setText(label);checkbox.setTextColor(TEXT);checkbox.setTextSize(16);checkbox.setButtonTintList(android.content.res.ColorStateList.valueOf(PRIMARY));checkbox.setChecked(checked);checkbox.setSaveEnabled(false);checkbox.setFilterTouchesWhenObscured(true);
+            row=checkbox;
+        }
+        row.setMinHeight(dp(64));
         choices.put(id,row);chatRows.addView(row,new LinearLayout.LayoutParams(-1,-2));
     }
-    private static String kind(String kind){return "channel".equals(kind)?"Canal":"group".equals(kind)?"Grupo":"Chat privado / Mensajes guardados";}
+    private static String kind(JSONObject chat){
+        String kind=chat.optString("kind");
+        if("group".equals(kind)||chat.optBoolean("supergroup"))return "Grupo";
+        return "channel".equals(kind)?"Canal":"Chat privado / Mensajes guardados";
+    }
 }

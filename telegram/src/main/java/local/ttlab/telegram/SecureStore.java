@@ -14,9 +14,8 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import java.nio.charset.StandardCharsets;
-import tgengine.Store;
 
-final class SecureStore implements Store {
+final class SecureStore {
     private final File directory;
     private final SecretKey key;
     SecureStore(Context context)throws Exception {this(context,"connector");}
@@ -62,6 +61,6 @@ final class SecureStore implements Store {
         byte[] value=get("database-key");if(value!=null)return value;
         value=new byte[32];new SecureRandom().nextBytes(value);put("database-key",value);return value;
     }
-    @Override public byte[] loadSession()throws Exception {byte[] session=get("session");return session==null?new byte[0]:session;}
-    @Override public void saveSession(byte[] session)throws Exception {put("session",session);}
+    byte[] loadSession()throws Exception {byte[] session=get("session");return session==null?new byte[0]:session;}
+    void saveSession(byte[] session)throws Exception {put("session",session);}
 }

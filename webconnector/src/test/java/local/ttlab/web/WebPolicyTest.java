@@ -5,6 +5,14 @@ import java.io.IOException;
 import org.junit.Test;
 
 public class WebPolicyTest {
+    @Test public void existingGalleryAccountIsValidatedBeforeSavingAConnection() throws Exception {
+        String existing = WebNetwork.digest("gelbooru:321");
+        assertEquals(existing, WebPolicy.bindAccount(WebSite.GELBOORU, "321", existing));
+        assertThrows(IllegalArgumentException.class, () -> WebPolicy.bindAccount(WebSite.GELBOORU, "123", existing));
+        assertThrows(IllegalArgumentException.class, () -> WebPolicy.bindAccount(WebSite.RULE34, "321", existing));
+        assertEquals(WebNetwork.digest("rule34:321"), WebPolicy.bindAccount(WebSite.RULE34, "321", null));
+    }
+
     @Test public void validatesMediaHostsAndKeepsCredentialsOutOfMediaUrls() throws Exception {
         assertEquals("api-cdn-mp4.rule34.xxx", WebPolicy.media(WebSite.RULE34, "https://api-cdn-mp4.rule34.xxx/images/a.mp4").getHost());
         for (String address : new String[]{"http://api-cdn.rule34.xxx/a.jpg", "https://api-cdn.rule34.xxx.evil.example/a.jpg",

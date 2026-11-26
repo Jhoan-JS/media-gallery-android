@@ -13,6 +13,8 @@ final class CallerGate {
         if(!((UserManager)context.getSystemService(Context.USER_SERVICE)).isUserForeground())throw new SecurityException("E_FOREGROUND_PROFILE");
     }
     static Caller provider(Context context,String packageName) {
+        if (BuildConfig.GALLERY_PACKAGE.equals(context.getPackageName()) && Binder.getCallingUid() == Process.myUid())
+            return verify(context, context.getPackageName(), Process.myUid());
         if(context.checkCallingPermission("local.ttlab.permission.TELEGRAM")!=PackageManager.PERMISSION_GRANTED)throw new SecurityException("E_GALLERY_CALLER");
         return verify(context,packageName,Binder.getCallingUid());
     }

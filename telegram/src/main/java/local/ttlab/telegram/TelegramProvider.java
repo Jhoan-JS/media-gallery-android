@@ -87,7 +87,7 @@ public final class TelegramProvider extends ContentProvider {
             ConnectorRuntime runtime=ConnectorRuntime.get(getContext());String account=uri.getQueryParameter("account");int channel=id(path.get(1)),message=id(path.get(2));boolean thumbnail="thumb".equals(path.get(0));
             byte[] bytes=runtime.provider(caller,account,true,cancellation,()->{
                 runtime.db.requirePeer(runtime.db.bound(),channel,uri.getQueryParameter("peer_key"));
-                ConnectorDb.Media media=runtime.db.media(account,channel,message,uri.getQueryParameter("revision"),thumbnail);
+                ConnectorDb.Media media=runtime.media(account,channel,message,uri.getQueryParameter("revision"),thumbnail);
                 String offsetText=uri.getQueryParameter("offset");long offset=offsetText==null?0:Long.parseLong(offsetText);
                 long available=thumbnail?media.locator.getLong("size"):media.size;
                 int length=integer(uri,"length",(int)Math.min(131072,available));

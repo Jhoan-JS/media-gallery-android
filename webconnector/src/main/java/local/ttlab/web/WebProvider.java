@@ -67,6 +67,9 @@ public final class WebProvider extends ContentProvider {
                 MatrixCursor cursor = new MatrixCursor(new String[]{"enabled"});
                 WebSettings.Config config = settings.config();
                 cursor.addRow(new Object[]{config != null && config.enabled ? 1 : 0});
+                Bundle status = new Bundle();
+                status.putBoolean("configured", config != null);
+                cursor.setExtras(status);
                 return cursor;
             }
             boolean identity = path.equals(List.of("identity"));

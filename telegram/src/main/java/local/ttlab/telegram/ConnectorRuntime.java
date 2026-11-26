@@ -13,8 +13,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import tgengine.Client;
-import tgengine.Tgengine;
 
 final class ConnectorRuntime {
     private static ConnectorRuntime instance;
@@ -22,7 +20,7 @@ final class ConnectorRuntime {
     final SecureStore store;
     final ConnectorDb db;
     private final ExecutorService engine=Executors.newSingleThreadExecutor();
-    private Client client;
+    private ConnectorTransport client;
     private ConnectorRuntime(Context context)throws Exception {
         this.context=context.getApplicationContext();store=new SecureStore(this.context);db=new ConnectorDb(this.context,store);
     }
@@ -33,18 +31,30 @@ final class ConnectorRuntime {
     void configure(long apiId,String apiHash)throws Exception {
         CallerGate.foreground(context);
         if(apiId<=0||apiId>Integer.MAX_VALUE||!apiHash.matches("[0-9a-fA-F]{32}"))throw new IllegalArgumentException("E_TELEGRAM_CREDENTIALS");
-        if(db.bound()!=null)throw new SecurityException("E_TELEGRAM_ALREADY_CONFIGURED");
-        byte[] clear=new JSONObject().put("api_id",apiId).put("api_hash",apiHash).toString().getBytes(StandardCharsets.UTF_8);
-        try{execute(null,()->{if(client!=null){client.close();client=null;}store.saveSession(new byte[0]);store.put("credentials",clear);return true;});}finally{Arrays.fill(clear,(byte)0);}
+        execute(null,()->{
+            if(db.bound()!=null)throw new SecurityException("E_TELEGRAM_ALREADY_CONFIGURED");
+            closeClient();
+            if(Thread.currentThread().isInterrupted())throw new IllegalStateException("E_TELEGRAM_CANCELLED");
+            byte[] clear=new JSONObject().put("api_id",apiId).put("api_hash",apiHash).toString().getBytes(StandardCharsets.UTF_8);
+            try{store.saveSession(new byte[0]);store.put("credentials",clear);return true;}
+            finally{Arrays.fill(clear,(byte)0);}
+        });
     }
-    private Client client()throws Exception {
-        if(client!=null)return client;
+    private void closeClient() {
+        ConnectorTransport previous=client;
+        client=null;
+        if(previous!=null)previous.close();
+    }
+    private ConnectorTransport client()throws Exception {
+        if(client!=null&&client.available())return client;
+        closeClient();
         byte[] clear=store.get("credentials");if(clear==null)throw new IllegalStateException("E_TELEGRAM_SETUP_REQUIRED");
-        try {
-            JSONObject credentials=new JSONObject(new String(clear,StandardCharsets.UTF_8));
-            client=Tgengine.newClient(credentials.getLong("api_id"),credentials.getString("api_hash"),store);return client;
-        }catch(LinkageError unavailable){throw new IllegalStateException("E_TELEGRAM_ENGINE_UNAVAILABLE");}
+        JSONObject credentials;
+        try {credentials=new JSONObject(new String(clear,StandardCharsets.UTF_8));}
         finally{Arrays.fill(clear,(byte)0);}
+        try {
+            client=ConnectorTransport.open(context,credentials.getLong("api_id"),credentials.getString("api_hash"),store);return client;
+        }catch(LinkageError unavailable){throw new IllegalStateException("E_TELEGRAM_ENGINE_UNAVAILABLE");}
     }
     JSONObject request(JSONObject request)throws Exception {
         String response=client().request(request.toString());
@@ -90,6 +100,16 @@ final class ConnectorRuntime {
             JSONObject result=new JSONObject(client().password(password));
             if(result.optBoolean("authorized"))db.bind(result.getString("account"));return result;
         }finally{Arrays.fill(password,(byte)0);}
+    }
+    ConnectorDb.Media media(String account,int channel,int id,String revision,boolean thumbnail)throws Exception {
+        ConnectorDb.Media cached=db.media(account,channel,id,revision,thumbnail);
+        if(cached!=null)return cached;
+        // Loading a grid must not fetch the history of every uncached thumbnail.
+        if(thumbnail)throw new IllegalStateException("E_TELEGRAM_NO_THUMBNAIL");
+        JSONObject item=request(new JSONObject().put("op","locate").put("peer",db.peer(account,channel,true))
+                .put("id",id).put("revision",revision));
+        db.restoreMedia(account,channel,id,revision,item);
+        return db.media(account,channel,id,revision,false);
     }
     byte[] read(ConnectorDb.Media media,long offset,int length,boolean thumbnail)throws Exception {
         byte[] bytes=client().read(new JSONObject().put("locator",media.locator).put("offset",offset).put("length",length).toString());

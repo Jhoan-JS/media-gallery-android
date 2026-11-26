@@ -72,7 +72,9 @@ final class ConnectorDb {
                 db.execSQL("INSERT INTO peers(account,kind,remote_id,access_hash,title) VALUES(?,?,?,?,?) ON CONFLICT(account,kind,remote_id) DO UPDATE SET access_hash=excluded.access_hash,title=excluded.title",new Object[]{account,kind,id,hash,title});
                 try(Cursor c=db.rawQuery("SELECT local_id,selected FROM peers WHERE account=? AND kind=? AND remote_id=?",new String[]{account,kind,id})) {
                     if(!c.moveToFirst()||c.getLong(0)>Integer.MAX_VALUE)throw new IllegalStateException("E_TELEGRAM_PEER_LIMIT");
-                    visible.put(new JSONObject().put("id",c.getInt(0)).put("title",title).put("kind",kind).put("selected",c.getInt(1)!=0));
+                    visible.put(new JSONObject().put("id",c.getInt(0)).put("title",title).put("kind",kind)
+                            .put("selected",c.getInt(1)!=0).put("supergroup",chat.optBoolean("supergroup"))
+                            .put("unavailable",chat.optBoolean("unavailable")));
                 }
             }
             db.setTransactionSuccessful();
@@ -102,23 +104,30 @@ final class ConnectorDb {
         if(items.length()>50||next==0||next< -1||newest<0)throw new IllegalStateException("E_TELEGRAM_PROTOCOL");
         MatrixCursor result=new MatrixCursor(MEDIA_COLUMNS);db.beginTransaction();
         try {
-            for(int i=0;i<items.length();i++) {
-                JSONObject item=items.getJSONObject(i);int id=item.getInt("id");long size=item.getLong("size"),date=item.getLong("date");
-                int width=item.optInt("width"),height=item.optInt("height"),duration=item.optInt("duration");
-                String name=item.getString("name"),mime=item.getString("mime"),revision=item.getString("revision"),contentKey=item.optString("content_key","");
-                String locator=item.getJSONObject("locator").toString();Object thumb=item.opt("thumb_locator");String thumbJson=thumb instanceof JSONObject?thumb.toString():null;
-                if(id<=0||size<=0||date<0||width<0||height<0||duration<0||name.length()>1024||mime.length()>128||revision.isEmpty()||revision.length()>256||contentKey.length()>256||locator.length()>32768||(thumbJson!=null&&thumbJson.length()>32768))throw new IllegalStateException("E_TELEGRAM_PROTOCOL");
-                Object[] row={id,channel,name,mime,size,date,width,height,duration,revision,contentKey};result.addRow(row);
-                db.execSQL("INSERT OR REPLACE INTO media(account,channel,id,name,mime,size,date,width,height,duration,revision,content_key,locator,thumb_locator) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",new Object[]{account,channel,id,name,mime,size,date,width,height,duration,revision,contentKey,locator,thumbJson});
-            }
+            for(int i=0;i<items.length();i++)result.addRow(storeMedia(account,channel,items.getJSONObject(i)));
             db.setTransactionSuccessful();
         }finally{db.endTransaction();}
         Bundle extras=new Bundle();extras.putInt("next",next);extras.putInt("newest",newest);result.setExtras(extras);return result;
     }
+    private Object[] storeMedia(String account,int channel,JSONObject item)throws Exception {
+        int id=item.getInt("id"),width=item.optInt("width"),height=item.optInt("height"),duration=item.optInt("duration");
+        long size=item.getLong("size"),date=item.getLong("date");
+        String name=item.getString("name"),mime=item.getString("mime"),revision=item.getString("revision"),contentKey=item.optString("content_key","");
+        String locator=item.getJSONObject("locator").toString();Object thumb=item.opt("thumb_locator");String thumbJson=thumb instanceof JSONObject?thumb.toString():null;
+        if(id<=0||size<=0||date<0||width<0||height<0||duration<0||name.length()>1024||mime.length()>128||revision.isEmpty()||revision.length()>256||contentKey.length()>256||locator.length()>32768||(thumbJson!=null&&thumbJson.length()>32768))throw new IllegalStateException("E_TELEGRAM_PROTOCOL");
+        db.execSQL("INSERT OR REPLACE INTO media(account,channel,id,name,mime,size,date,width,height,duration,revision,content_key,locator,thumb_locator) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",new Object[]{account,channel,id,name,mime,size,date,width,height,duration,revision,contentKey,locator,thumbJson});
+        return new Object[]{id,channel,name,mime,size,date,width,height,duration,revision,contentKey};
+    }
+    synchronized void restoreMedia(String account,int channel,int id,String revision,JSONObject item)throws Exception {
+        peer(account,channel,true);
+        if(item.getInt("id")!=id||!revision.equals(item.getString("revision")))throw new IllegalStateException("E_MEDIA_CHANGED");
+        storeMedia(account,channel,item);
+    }
     synchronized Media media(String account,int channel,int id,String revision,boolean thumbnail)throws Exception {
         peer(account,channel,true);if(id<=0||revision==null)throw new IllegalArgumentException("E_TELEGRAM_BAD_REQUEST");
         try(Cursor c=db.rawQuery("SELECT revision,size,locator,thumb_locator FROM media WHERE account=? AND channel=? AND id=?",new String[]{account,""+channel,""+id})) {
-            if(!c.moveToFirst()||!revision.equals(c.getString(0)))throw new IllegalStateException("E_MEDIA_CHANGED");
+            if(!c.moveToFirst())return null;
+            if(!revision.equals(c.getString(0)))throw new IllegalStateException("E_MEDIA_CHANGED");
             String locator=c.getString(thumbnail?3:2);if(locator==null)throw new IllegalStateException("E_TELEGRAM_NO_THUMBNAIL");
             return new Media(c.getLong(1),new JSONObject(locator));
         }

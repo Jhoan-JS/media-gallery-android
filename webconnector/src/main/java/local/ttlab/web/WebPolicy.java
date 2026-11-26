@@ -2,7 +2,6 @@ package local.ttlab.web;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -12,16 +11,19 @@ final class WebPolicy {
     static final int RANGE = 4 * 131072;
     static final int THUMB = 131072;
     static final long MAX_MEDIA = 4L * 1024 * 1024 * 1024;
-    private static final Set<String> MEDIA_HOSTS = Set.of(
-            "api-cdn.rule34.xxx", "api-cdn-mp4.rule34.xxx", "api-cdn-us.rule34.xxx",
-            "api-cdn-us-mp4.rule34.xxx");
     private static final Pattern CONTENT_RANGE = Pattern.compile("bytes ([0-9]+)-([0-9]+)/([0-9]+)");
+
+    static String bindAccount(WebSite site, String user, String expected) throws Exception {
+        String account = WebNetwork.digest(site.id + ":" + user);
+        if (expected != null && !expected.equals(account)) throw new IllegalArgumentException("E_WEB_ACCOUNT");
+        return account;
+    }
 
     static URI media(WebSite site, String address) {
         if (address.length() > 2048) throw new IllegalArgumentException("E_WEB_MEDIA_URL");
         URI uri = URI.create(address);
         if (!"https".equals(uri.getScheme()) || uri.getHost() == null ||
-                !mediaHost(site, uri.getHost()) || uri.getPort() != -1 ||
+                !WebDestinations.mediaHost(site, uri.getHost()) || uri.getPort() != -1 ||
                 uri.getRawUserInfo() != null || uri.getRawFragment() != null ||
                 uri.getRawQuery() != null || uri.getRawPath().length() < 2) {
             throw new IllegalArgumentException("E_WEB_MEDIA_URL");
@@ -30,11 +32,6 @@ final class WebPolicy {
             throw new IllegalArgumentException("E_WEB_MEDIA_URL");
         }
         return uri;
-    }
-
-    private static boolean mediaHost(WebSite site, String host) {
-        if (site == WebSite.RULE34) return MEDIA_HOSTS.contains(host);
-        return host.matches("(?:s?img[1-9][0-9]?|s?img|video|cdn)\\.gelbooru\\.com");
     }
 
     static String query(WebSite site, String input) {

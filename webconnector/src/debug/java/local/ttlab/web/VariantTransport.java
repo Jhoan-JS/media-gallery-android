@@ -18,11 +18,11 @@ final class VariantTransport {
     private static final ConcurrentHashMap<String, byte[]> ASSETS = new ConcurrentHashMap<>();
 
     static HttpURLConnection open(Context context, URI uri) throws IOException {
-        if (!BuildConfig.WEB_FIXTURE) return (HttpURLConnection) uri.toURL().openConnection(Proxy.NO_PROXY);
-        JSONObject[] livePosts = {
+        if (!WebHost.FIXTURE) return (HttpURLConnection) uri.toURL().openConnection(Proxy.NO_PROXY);
+        JSONObject[] livePosts = WebHost.ALLOW_LIVE_FIXTURE ? new JSONObject[]{
                 readLivePost(context, "live-general.json", 15335274),
                 readLivePost(context, "live-general-video.json", 15334168)
-        };
+        } : new JSONObject[0];
         for (JSONObject row : livePosts) {
             if (row == null) continue;
             for (String field : new String[]{"file_url", "sample_url", "preview_url"}) {

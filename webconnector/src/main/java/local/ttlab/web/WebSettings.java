@@ -8,8 +8,6 @@ import java.nio.charset.StandardCharsets;
 import org.json.JSONObject;
 
 final class WebSettings {
-    static final String GALLERY = "local.ttlab.gallery";
-    static final String PERMISSION = "local.ttlab.permission.WEB";
     private static final java.util.EnumMap<WebSite, WebSettings> INSTANCES = new java.util.EnumMap<>(WebSite.class);
     final WebSite site;
     final WebNetwork network;
@@ -53,7 +51,7 @@ final class WebSettings {
 
     static void requireCaller(Context context, String name, int uid) {
         android.content.pm.PackageManager pm = context.getPackageManager();
-        if (!GALLERY.equals(name) || uid / 100000 != Process.myUid() / 100000 ||
+        if (!WebHost.GALLERY_PACKAGE.equals(name) || uid / 100000 != Process.myUid() / 100000 ||
                 !context.getSystemService(UserManager.class).isUserForeground() ||
                 pm.checkSignatures(context.getPackageName(), name) !=
                         android.content.pm.PackageManager.SIGNATURE_MATCH) {
@@ -67,7 +65,11 @@ final class WebSettings {
     }
 
     static void requireProvider(Context context, String name) {
-        context.enforceCallingPermission(PERMISSION, "E_WEB_CALLER");
+        if (WebHost.GALLERY_PACKAGE.equals(context.getPackageName()) && Binder.getCallingUid() == Process.myUid()) {
+            requireCaller(context, context.getPackageName(), Process.myUid());
+            return;
+        }
+        context.enforceCallingPermission(WebHost.PERMISSION, "E_WEB_CALLER");
         requireCaller(context, name, Binder.getCallingUid());
     }
 
@@ -108,16 +110,19 @@ final class WebSettings {
         return network.generation();
     }
 
-    synchronized void enable(String user, String key) throws Exception {
+    synchronized void enable(String user, String key, String expectedAccount) throws Exception {
         if (!user.matches("[1-9][0-9]{0,18}") || !key.matches("[A-Za-z0-9_-]{8,128}")) {
             throw new IllegalArgumentException("E_WEB_CREDENTIALS");
         }
-        if (config != null && !config.user.equals(user)) throw new IllegalArgumentException("E_WEB_ACCOUNT");
-        save(new Config(user, key, WebNetwork.digest(site.id + ":" + user), true));
+        if (config != null && !config.user.isEmpty() && !config.user.equals(user)) {
+            throw new IllegalArgumentException("E_WEB_ACCOUNT");
+        }
+        save(new Config(user, key, WebPolicy.bindAccount(site, user, expectedAccount), true));
     }
 
     synchronized void disable() throws Exception {
-        if (config != null) save(new Config(config.user, "", config.account, false));
+        if (config == null) save(new Config("", "", "", false));
+        else save(new Config(config.user, "", config.account, false));
     }
 
     private void save(Config next) throws Exception {

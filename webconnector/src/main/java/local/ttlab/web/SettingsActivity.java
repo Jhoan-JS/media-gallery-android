@@ -59,21 +59,24 @@ public final class SettingsActivity extends Activity {
             }
         } catch (Exception invalid) { /* Launcher can revoke but cannot grant gallery access. */ }
         if (authorized) {
+            String expectedAccount = getIntent().getStringExtra("expected-account");
             EditText user = field(layout, "ID de usuario", InputType.TYPE_CLASS_NUMBER);
             EditText key = field(layout, "Clave de API", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
             if (current != null) user.setText(current.user);
             Button enable = button(layout, "Habilitar y autorizar");
             enable.setOnClickListener(view -> {
                 try {
-                    settings.enable(user.getText().toString().trim(), key.getText().toString().trim());
+                    settings.enable(user.getText().toString().trim(), key.getText().toString().trim(), expectedAccount);
                     key.getText().clear();
                     setResult(RESULT_OK);
                     finish();
                 } catch (IllegalArgumentException invalid) {
-                    status.setText("Revisa las credenciales. Esta biblioteca se vincula a un solo ID de usuario.");
+                    status.setText("E_WEB_ACCOUNT".equals(invalid.getMessage())
+                            ? "Usa el ID de la cuenta vinculada a esta biblioteca."
+                            : "Revisa el ID de usuario y la clave de API.");
                 } catch (Exception unavailable) { status.setText("No se pudo guardar la autorización."); }
             });
-            if (current != null && current.enabled) {
+            if (current != null && current.enabled && (expectedAccount == null || expectedAccount.equals(current.account))) {
                 Button keep = button(layout, "Usar autorización guardada");
                 keep.setOnClickListener(view -> { setResult(RESULT_OK); finish(); });
             }
