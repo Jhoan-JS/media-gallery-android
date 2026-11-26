@@ -535,7 +535,7 @@ public final class ViewerActivity extends SecureActivity {
         Throwable failure=cause!=null?cause:video instanceof BufferedMediaSource?((BufferedMediaSource)video).failure():null;
         persistPlayback();cancelRequest();releaseVideo();loading=false;loadFailed=true;progress.setVisibility(View.GONE);
         status.setMaxLines(4);status.setVisibility(View.VISIBLE);
-        status.setText(SourceId.web(state.key)?WebSource.message(failure):ConnectionMessage.describe(failure,Profiles.owner(),state.key));
+        status.setText(SourceId.web(state.key)?WebSource.message(failure):ConnectionMessage.describe(failure, state.key));
         showControls();handler.removeCallbacks(hideControls);
     }
     private static void cancel(Future<?> work){if(work!=null)work.cancel(true);}

@@ -21,7 +21,7 @@ abstract class SecureActivity extends Activity {
     void content(View view){frame=new FrameLayout(this);frame.addView(view);super.setContentView(frame);}
     @Override protected void onResume(){super.onResume();resumed=true;if(state==null||frame==null)return;
         updateWorkspaceBack();
-        if(!Profiles.current()||!getSystemService(android.os.UserManager.class).isUserForeground()){state.unlocked=false;cover();new SecureDialogs.Builder(this).setTitle("Perfil no autorizado").setMessage("Abre esta instalación en owner o en uno de los perfiles de laboratorio autorizados.").setCancelable(false).setPositiveButton("Cerrar",(d,w)->finish()).show();return;}
+        if(!Profiles.active(this)){state.unlocked=false;cover();new SecureDialogs.Builder(this).setTitle("Perfil no autorizado").setMessage("Abre la galería en el usuario Android que está activo.").setCancelable(false).setPositiveButton("Cerrar",(d,w)->finish()).show();return;}
         try{if(this instanceof RecoveryActivity&&state.securityVault.secret("pin")==null&&state.library.count(0,"",0,false)==0)return;}catch(Exception unavailable){cover();return;}
         if(!state.unlocked)lock();else uncover();
     }
@@ -77,7 +77,7 @@ abstract class SecureActivity extends Activity {
     }
     long unlockEpoch(){return pinEpoch;}
     boolean biometricCurrent(long epoch){
-        try{return state!=null&&Profiles.current()&&UnlockGate.accept(epoch,pinEpoch,resumed,getSystemService(android.os.UserManager.class).isUserForeground(),isFinishing()||isDestroyed(),state.maintenance);}catch(Exception unavailable){return false;}
+        try{return state!=null&&UnlockGate.accept(epoch,pinEpoch,resumed,Profiles.active(this),isFinishing()||isDestroyed(),state.maintenance);}catch(Exception unavailable){return false;}
     }
     void trackBiometric(android.os.CancellationSignal signal){cancelBiometric();biometricSignal=signal;}
     void trackDialog(android.app.Dialog dialog){dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);dialog.getWindow().setHideOverlayWindows(true);ownedDialogs.removeIf(old->!old.isShowing());if(!ownedDialogs.contains(dialog))ownedDialogs.add(dialog);}

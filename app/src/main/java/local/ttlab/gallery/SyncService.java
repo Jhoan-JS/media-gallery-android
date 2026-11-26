@@ -64,7 +64,7 @@ public final class SyncService extends Service {
                 if(remaining>0){finish(job,ConnectionMessage.telegramWaitMessage((remaining+999)/1000)+" El avance está guardado.");return;}
             }
             state.source.guard();update(job,"Descubriendo chats autorizados…",true);
-            List<Source.Channel> channels=state.source.channels();if(channels.isEmpty())throw new IllegalStateException("telegram".equals(job.source)?"E_TELEGRAM_NOT_SELECTED":"No hay canales autorizados disponibles en TestTes");
+            List<Source.Channel> channels=state.source.channels();if(channels.isEmpty())throw new IllegalStateException("telegram".equals(job.source)?"E_TELEGRAM_NOT_SELECTED":"Esta cuenta de Tato no tiene canales autorizados disponibles");
             state.library.channels(channels);update(job,"Chats disponibles. Leyendo solo metadatos…",true);int total=0;
             for(Source.Channel channel:channels){
                 if(job.selected>0&&channel.id!=job.selected)continue;
@@ -90,7 +90,7 @@ public final class SyncService extends Service {
             }
             done=job.paused||closed||state.maintenance?"Sincronización pausada. Actualizar la continúa.":"Catálogo actualizado · originales bajo demanda";
         }catch(Exception failure){
-            ending=3;done=ConnectionMessage.describe(failure,Profiles.owner(),job.source);
+            ending=3;done=ConnectionMessage.describe(failure, job.source);
             long wait=telegram?ConnectionMessage.telegramWaitSeconds(failure):0;
             if(wait>0&&state!=null){
                 state.preferences.edit().putLong(TELEGRAM_WAIT_UNTIL,System.currentTimeMillis()+wait*1000).commit();

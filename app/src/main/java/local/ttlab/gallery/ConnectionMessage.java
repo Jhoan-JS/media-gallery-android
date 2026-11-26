@@ -13,9 +13,9 @@ final class ConnectionMessage {
     static String telegramWaitMessage(long seconds){
         return "Telegram solicita esperar "+seconds+" segundos. Inténtalo cuando termine la espera.";
     }
-    static String describe(Throwable error,boolean owner,String source){
+    static String describe(Throwable error,String source){
         if(SourceId.local(source))return "No se pudo abrir la copia cifrada de este archivo.";
-        if(!"telegram".equals(source))return describe(error,owner);
+        if(!"telegram".equals(source))return describeTato(error);
         long wait=telegramWaitSeconds(error);
         if(wait>0)return telegramWaitMessage(wait);
         StringBuilder codes=new StringBuilder();for(int n=0;error!=null&&n<8;n++,error=error.getCause())codes.append(error.getMessage()).append(' ');
@@ -32,14 +32,13 @@ final class ConnectionMessage {
         if(value.contains("E_TELEGRAM_NOT_SELECTED")||value.contains("E_TELEGRAM_CHAT_NOT_SELECTED"))return "Elige los chats que quieres explorar en "+settings+".";
         return "No se pudo completar la lectura de Telegram. Pulsa Reintentar para restablecer la conexión; la autorización se conserva.";
     }
-    static String describe(Throwable error,boolean owner){
-        if(!owner)return "Abre el clon de laboratorio con TestTes en este perfil y vuelve a intentarlo.";
+    private static String describeTato(Throwable error){
         StringBuilder codes=new StringBuilder();for(int n=0;error!=null&&n<8;n++,error=error.getCause())codes.append(error.getMessage()).append(' ');
         String value=codes.toString();
         String connector=BuildConfig.ISOLATED_CLIENT?"Conector de fuentes":"Conector Tato";
         if(value.contains("E_ACCOUNT_SELECTION"))return "Selecciona en "+connector+" la cuenta ya vinculada. La autorización sigue guardada.";
         if(value.contains("E_LOGGED_OUT"))return "Abre "+connector+" e inicia sesión en la cuenta vinculada a esta biblioteca.";
-        if(value.contains("E_OWNER_CONSENT_REQUIRED")||value.contains("E_OWNER_BINDING")||value.contains("Autoriza primero"))return "En Fuentes, abre Configurar conexión y pulsa Autorizar conexión. La autorización queda guardada.";
+        if(value.contains("E_TATO_CONSENT_REQUIRED")||value.contains("E_TATO_BINDING")||value.contains("E_OWNER_CONSENT_REQUIRED")||value.contains("E_OWNER_BINDING")||value.contains("Autoriza primero"))return "En Fuentes, abre Configurar conexión y pulsa Autorizar conexión. La autorización queda guardada.";
         if(value.contains("E_SOURCE_ACCOUNT_CHANGED")||value.contains("otra cuenta")||value.contains("respaldo antiguo"))return "Esta biblioteca conserva su cuenta original. Comprueba la cuenta del conector; tus datos y descargas se mantienen.";
         if(value.contains("Instala Conector"))return "Actualiza "+connector+" en este mismo usuario Android y vuelve a intentarlo.";
         return "No se pudo completar la lectura. Pulsa Reintentar para restablecer la conexión. Puedes continuar sin volver a vincular la cuenta.";

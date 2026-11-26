@@ -5,7 +5,6 @@ import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.UserManager;
 import android.provider.DocumentsContract;
 import android.text.InputType;
 import android.view.Gravity;
@@ -90,7 +89,7 @@ public final class RecoveryActivity extends SecureActivity {
     private void continuePending() {
         if(!resumed||busy||pendingUri==null||pendingPassword==null)return;
         if(!state.unlocked&&!(pendingMode==OPEN&&empty()))return;
-        if(!Profiles.current()||!getSystemService(UserManager.class).isUserForeground()){wipePending();finish();return;}
+        if(!Profiles.active(this)){wipePending();finish();return;}
         final Uri uri=pendingUri;final int mode=pendingMode;final char[] phrase=pendingPassword;pendingUri=null;pendingPassword=null;
         busy=true;cancelled=false;buttons();status.setText("Procesando respaldo cifrado…");
         state.database.execute(()->{

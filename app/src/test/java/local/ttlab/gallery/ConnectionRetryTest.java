@@ -16,12 +16,12 @@ public final class ConnectionRetryTest {
         assertEquals(2,attempts.get());
     }
     @Test public void consentAndSelectionFailuresNeverRetry()throws Exception{
-        for(Throwable denied:new Throwable[]{new SecurityException("E_OWNER_CONSENT_REQUIRED"),new IOException("binder",new SecurityException("E_ACCOUNT_SELECTION")),new IOException("E_LAB_MEDIA_UNAVAILABLE:E_MEDIA_CHANGED")})assertFalse(ConnectionRetry.retryable(denied));
+        for(Throwable denied:new Throwable[]{new SecurityException("E_TATO_CONSENT_REQUIRED"),new IOException("binder",new SecurityException("E_ACCOUNT_SELECTION")),new IOException("E_TATO_MEDIA_UNAVAILABLE:E_MEDIA_CHANGED")})assertFalse(ConnectionRetry.retryable(denied));
     }
     @Test public void cancellationAndFullProtocolTimeoutNeverRetry(){
         assertFalse(ConnectionRetry.retryable(new InterruptedException()));
         assertFalse(ConnectionRetry.retryable(new InterruptedIOException()));
-        assertFalse(ConnectionRetry.retryable(new IOException("E_LAB_MEDIA_UNAVAILABLE:E_RPC_TIMEOUT")));
+        assertFalse(ConnectionRetry.retryable(new IOException("E_TATO_MEDIA_UNAVAILABLE:E_RPC_TIMEOUT")));
         assertFalse(ConnectionRetry.retryable(new IllegalStateException("Respuesta demasiado grande")));
     }
     @Test public void interruptedWorkerDoesNotStartARecoveryRead()throws Exception{

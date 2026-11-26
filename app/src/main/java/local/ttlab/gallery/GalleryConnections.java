@@ -34,7 +34,7 @@ final class GalleryConnections {
                     }
                 } catch (Exception failure) {
                     result = SourceId.web(origin.key) ? WebSource.message(failure)
-                            : ConnectionMessage.describe(failure, Profiles.owner(), origin.key);
+                            : ConnectionMessage.describe(failure, origin.key);
                 }
                 String message = result;
                 activity.runOnUiThread(() -> {

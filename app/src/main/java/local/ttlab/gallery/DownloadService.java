@@ -55,7 +55,7 @@ public final class DownloadService extends Service {
         if(!ForegroundWork.promote(this,1,notification(shown,"Preparando descargas cifradas…",-1))){changed(key);stopSelf(startId);return START_NOT_STICKY;}
         queue.post(()->command(command,startId));return START_REDELIVER_INTENT;
     }
-    private void guard(State selected){if(!Profiles.current()||!getSystemService(UserManager.class).isUserForeground()||selected.maintenance)throw new SecurityException("Perfil no autorizado o respaldo en curso");}
+    private void guard(State selected){if(!Profiles.active(this)||selected.maintenance)throw new SecurityException("Perfil no autorizado o respaldo en curso");}
     private State resources(String source)throws Exception{
         State selected=states.get(source);
         if(selected==null){selected=State.get(this,source);guard(selected);selected.library.db.execSQL("UPDATE downloads SET status='queued' WHERE status='running'");states.put(source,selected);}
@@ -142,7 +142,7 @@ public final class DownloadService extends Service {
             schedule();
         }catch(Exception error){
             String key=state==null?"tato":state.key;
-            if(active!=null){String message=error.getMessage()!=null&&error.getMessage().startsWith("Libera espacio")?"Libera espacio para continuar":ConnectionMessage.describe(error,Profiles.owner(),key);
+            if(active!=null){String message=error.getMessage()!=null&&error.getMessage().startsWith("Libera espacio")?"Libera espacio para continuar":ConnectionMessage.describe(error, key);
                 try{state.library.db.execSQL("UPDATE downloads SET status='error',error=? WHERE channel=? AND id=? AND added=?",new Object[]{message,active.channel,active.id,request});}catch(Exception ignored){}
             }
             if(state!=null)try{state.library.db.execSQL("UPDATE downloads SET status='paused' WHERE status IN('queued','running')");}catch(Exception ignored){}

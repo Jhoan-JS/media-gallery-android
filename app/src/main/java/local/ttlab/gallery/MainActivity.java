@@ -442,7 +442,7 @@ public final class MainActivity extends SecureActivity {
     }
     private void applySelected(String action){
         if(selected.isEmpty()||selectionBusy)return;final State origin=state;final List<Item> batch=new ArrayList<>(selected.values());final long expected=unlockEpoch();final int context=personalContext;selectionBusy=true;
-        origin.database.execute(()->{try{if(!origin.unlocked||origin.maintenance||!Profiles.current()||!getSystemService(android.os.UserManager.class).isUserForeground())throw new SecurityException();PersonalLibrary.Change change=action.equals("download")?null:origin.library.personal.change(batch,action);int applied=change==null?origin.library.enqueueSelection(batch):change.applied;
+        origin.database.execute(()->{try{if(!origin.unlocked||origin.maintenance||!Profiles.active(this))throw new SecurityException();PersonalLibrary.Change change=action.equals("download")?null:origin.library.personal.change(batch,action);int applied=change==null?origin.library.enqueueSelection(batch):change.applied;
             runOnUiThread(()->{if(!personalCurrent(origin,expected,context))return;selectionBusy=false;finishSelection();boolean launched=!action.equals("download")||applied==0||DownloadService.wake(this,origin.key);if(change==null)Toast.makeText(this,launched?applied+" archivos añadidos a Descargas":"Cola guardada. Abre Descargas para continuar",Toast.LENGTH_SHORT).show();else undo.show(origin,change,"Aplicado a "+applied+" archivos",expanded?16:72,this::refresh);refresh();});
         }catch(Exception error){runOnUiThread(()->{if(!personalCurrent(origin,expected,context))return;selectionBusy=false;Toast.makeText(this,error instanceof IllegalStateException?error.getMessage():"No se pudo aplicar. Tu selección se conserva para reintentar.",Toast.LENGTH_LONG).show();});}});
     }
@@ -617,19 +617,17 @@ public final class MainActivity extends SecureActivity {
     }
 
     private void showConnectionOptions() {
-        boolean allowAuthorization = !UiSource.isTato(this) || Profiles.owner();
-        String[] actions = allowAuthorization ? new String[]{"Abrir conector", "Autorizar conexión", "Actualizar biblioteca"}
-                : new String[]{"Abrir conector", "Actualizar biblioteca"};
+        String[] actions = {"Abrir conector", "Autorizar conexión", "Actualizar biblioteca"};
         GalleryUi.menu(this, SourceId.label(state.key), actions, selected -> {
             if (selected == 0) openConnector();
-            else if (selected == 1 && allowAuthorization) authorizeConnector();
+            else if (selected == 1) authorizeConnector();
             else toggleSync(0);
         });
     }
 
     private String authorizationSource;
-    private void openConnector(){try{String pkg=UiSource.isTato(this)?"org.im.ttalk.lab":TelegramSource.PACKAGE;Intent launch=BuildConfig.ISOLATED_CLIENT&&!UiSource.isTato(this)?new Intent().setComponent(new ComponentName(pkg,"local.ttlab.telegram.MainActivity")):getPackageManager().getLaunchIntentForPackage(pkg);if(launch==null||!Profiles.current())throw new android.content.ActivityNotFoundException();startActivity(launch);}catch(android.content.ActivityNotFoundException|SecurityException unavailable){String connector=BuildConfig.ISOLATED_CLIENT?"Conector de fuentes":UiSource.isTato(this)?"Conector Tato":"Conector TG";Toast.makeText(this,"Comprueba que "+connector+" esté instalado en este perfil.",Toast.LENGTH_LONG).show();}}
-    private void authorizeConnector(){if(state==null||!state.unlocked||(UiSource.isTato(this)&&!Profiles.owner()))return;authorizationSource=state.key;try{boolean tato=UiSource.isTato(this);Intent intent=new Intent().setComponent(new ComponentName(tato?"org.im.ttalk.lab":TelegramSource.PACKAGE,tato?"local.ttlab.lab.GalleryAuthorizeActivity":"local.ttlab.telegram.AuthorizeActivity"));if(!tato)intent.setAction("local.ttlab.telegram.AUTHORIZE");startActivityForResult(intent,73);}catch(android.content.ActivityNotFoundException|SecurityException unavailable){authorizationSource=null;Toast.makeText(this,"No se pudo abrir la autorización. Instala y abre el conector en este mismo perfil.",Toast.LENGTH_LONG).show();}}
+    private void openConnector(){try{String pkg=UiSource.isTato(this)?"org.im.ttalk.lab":TelegramSource.PACKAGE;Intent launch=BuildConfig.ISOLATED_CLIENT&&!UiSource.isTato(this)?new Intent().setComponent(new ComponentName(pkg,"local.ttlab.telegram.MainActivity")):getPackageManager().getLaunchIntentForPackage(pkg);if(launch==null||!Profiles.active(this))throw new android.content.ActivityNotFoundException();startActivity(launch);}catch(android.content.ActivityNotFoundException|SecurityException unavailable){String connector=BuildConfig.ISOLATED_CLIENT?"Conector de fuentes":UiSource.isTato(this)?"Conector Tato":"Conector TG";Toast.makeText(this,"Comprueba que "+connector+" esté instalado en este perfil.",Toast.LENGTH_LONG).show();}}
+    private void authorizeConnector(){if(state==null||!state.unlocked||!Profiles.active(this))return;authorizationSource=state.key;try{boolean tato=UiSource.isTato(this);Intent intent=new Intent().setComponent(new ComponentName(tato?"org.im.ttalk.lab":TelegramSource.PACKAGE,tato?"local.ttlab.tato.GalleryAuthorizeActivity":"local.ttlab.telegram.AuthorizeActivity"));if(!tato)intent.setAction("local.ttlab.telegram.AUTHORIZE");startActivityForResult(intent,73);}catch(android.content.ActivityNotFoundException|SecurityException unavailable){authorizationSource=null;Toast.makeText(this,"No se pudo abrir la autorización. Instala y abre el conector en este mismo perfil.",Toast.LENGTH_LONG).show();}}
     @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);
         if (request == GalleryWorkspace.DOWNLOAD_REQUEST) {
             if (result == RESULT_OK && data != null) pendingSection = GalleryWorkspace.destination(data);
@@ -769,11 +767,8 @@ public final class MainActivity extends SecureActivity {
                     emptyAction.setText("Importar archivos");
                     emptyAction.setOnClickListener(view -> navigate("import"));
                 } else {
-                    emptyAction.setText(UiSource.isTato(this) && !Profiles.owner() ? "Actualizar biblioteca" : "Abrir fuentes");
-                    emptyAction.setOnClickListener(view -> {
-                        if (UiSource.isTato(this) && !Profiles.owner()) toggleSync(0);
-                        else navigate(GalleryWorkspace.SOURCES);
-                    });
+                    emptyAction.setText("Abrir fuentes");
+                    emptyAction.setOnClickListener(view -> navigate(GalleryWorkspace.SOURCES));
                 }
                 updateSyncControl();if(!SyncService.running(state.key)){String message=SyncService.message(state.key);boolean normal=message==null||message.equals("Catálogo local · originales bajo demanda")||message.startsWith("Catálogo actualizado");String summary=normal?java.text.NumberFormat.getIntegerInstance().format(count)+" archivos"+(f.availability==1?" · guardados":""):message;status.setText(summary);status.setContentDescription(summary);}
             });
@@ -787,7 +782,7 @@ public final class MainActivity extends SecureActivity {
         }).show();});});
     }
     private void storage(){startActivity(sourceIntent(StorageActivity.class));}
-    private void help(){String connection=UiSource.isLocal(this)?"La galería copia los archivos que eliges al almacenamiento cifrado. Los archivos originales se conservan en su ubicación.":!UiSource.isTato(this)?"Telegram mantiene una sesión propia. Desde Fuentes puedes iniciar sesión y autorizar únicamente los chats elegidos. Abrir un archivo intencionadamente informa su lectura o vista a Telegram. El análisis visual no se ejecuta sobre esta fuente.":Profiles.owner()?"El conector mantiene la sesión de Tato. En Fuentes, abre el conector, inicia sesión y vuelve para Autorizar conexión.":"Esta instalación usa TestTes dentro del perfil de laboratorio autorizado.";
+    private void help(){String connection=UiSource.isLocal(this)?"La galería copia los archivos que eliges al almacenamiento cifrado. Los archivos originales se conservan en su ubicación.":!UiSource.isTato(this)?"Telegram mantiene una sesión propia. Desde Fuentes puedes iniciar sesión y autorizar únicamente los chats elegidos. Abrir un archivo intencionadamente informa su lectura o vista a Telegram. El análisis visual no se ejecuta sobre esta fuente.":"El conector mantiene la sesión de Tato. En Fuentes, abre el conector, inicia sesión y vuelve para Autorizar conexión.";
         new SecureDialogs.Builder(this).setTitle("Solo en tus dispositivos").setMessage(connection+" La galería no tiene permiso de Internet.\n\nEl catálogo, las miniaturas y las descargas están cifrados. El análisis visual se hace en el dispositivo, a partir de miniaturas disponibles. No usa analítica ni servicios en la nube. Bloquea la interfaz al salir o apagar la pantalla. Las tareas en segundo plano conservan acceso al almacén cifrado.\n\nBusca palabras del nombre o filtra por tipo y fecha. Toca para abrir; mantén pulsado para seleccionar varios. Guarda tus consultas desde Filtrar y ordenar. Encuéntralas en Filtros guardados, en el selector de Biblioteca. Las similitudes son aproximadas; los duplicados exactos usan la identidad del contenido del catálogo.\n\nConserva un respaldo cifrado si necesitas recuperar tu biblioteca. No hay recuperación del PIN en la nube.\n\nComponentes abiertos: AOSP (Apache 2.0), SQLCipher (licencia BSD). Esta app no está afiliada a Tato ni a Ente.").setPositiveButton("Entendido",null).show();}
     @Override protected void onSaveInstanceState(Bundle out) {
         rememberViewport();

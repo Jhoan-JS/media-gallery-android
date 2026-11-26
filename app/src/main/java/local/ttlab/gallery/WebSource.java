@@ -11,7 +11,6 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.CancellationSignal;
-import android.os.UserManager;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -86,7 +85,7 @@ final class WebSource extends Source {
     }
 
     private void guardProfile() {
-        if (!Profiles.current() || !context.getSystemService(UserManager.class).isUserForeground()) {
+        if (!Profiles.active(context)) {
             throw new SecurityException("Abre la instalación en su usuario Android activo");
         }
     }

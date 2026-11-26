@@ -17,8 +17,8 @@ android {
         manifestPlaceholders.isolatedHost = isolatedHost
         minSdk 31
         targetSdk 36
-        versionCode isolatedClient ? 32 : 30
-        versionName isolatedClient ? '2.30' : '2.28'
+        versionCode isolatedClient ? 33 : 30
+        versionName isolatedClient ? '2.31' : '2.28'
         buildConfigField 'String','TELEGRAM_PACKAGE','"'+tgId+'"'
         buildConfigField 'String','TELEGRAM_AUTHORITY','"'+tgAuthority+'"'
         buildConfigField 'boolean','ISOLATED_CLIENT',isolatedClient.toString()

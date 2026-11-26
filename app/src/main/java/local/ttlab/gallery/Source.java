@@ -4,7 +4,6 @@ import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Process;
-import android.os.UserManager;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.IOException;
@@ -13,12 +12,11 @@ import java.util.List;
 
 class Source {
     static final int CHUNK=131072;
-    static final int AUTHORIZED_USER=14;
     private final Context context;
     private final String base,connector,label;private final boolean explicitConsent;
     private Vault vault;private final Library library;private String account;private int rangeMax=-1;
     Source(Context c){this(c,null,null);}
-    Source(Context c,Vault v,Library l){this(c,v,l,"org.im.ttalk.lab","local.ttlab.bridge",Profiles.owner(),"Tato 2.0");}
+    Source(Context c,Vault v,Library l){this(c,v,l,"org.im.ttalk.lab","local.ttlab.bridge",true,"Tato");}
     Source(Context c,Vault v,Library l,String connectorPackage,String authority,boolean consent,String connectorLabel){
         context=c.getApplicationContext();vault=v;library=l;connector=connectorPackage;base="content://"+authority+"/";explicitConsent=consent;label=connectorLabel;
     }
@@ -28,8 +26,7 @@ class Source {
     org.json.JSONObject sponsored(int channel)throws Exception{return null;}
     void sponsoredAction(String action,int channel,String id)throws Exception{}
     void guard()throws Exception{
-        if(!Profiles.current()||android.os.Build.VERSION.SDK_INT<31
-            ||!((UserManager)context.getSystemService(Context.USER_SERVICE)).isUserForeground())throw new SecurityException("Abre la instalación en su usuario Android activo");
+        if(!Profiles.active(context))throw new SecurityException("Abre la instalación en su usuario Android activo");
         if(context.getPackageManager().checkSignatures(context.getPackageName(),connector)!=PackageManager.SIGNATURE_MATCH)
             throw new SecurityException("Instala Conector "+label+" en el mismo usuario Android");
     }

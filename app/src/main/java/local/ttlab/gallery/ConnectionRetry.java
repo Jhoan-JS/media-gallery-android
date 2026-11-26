@@ -18,13 +18,13 @@ final class ConnectionRetry {
             if(failure instanceof SecurityException||failure instanceof IllegalArgumentException||failure instanceof InterruptedException
                 ||failure instanceof InterruptedIOException||failure instanceof CancellationException)return false;
             String message=String.valueOf(failure.getMessage());
-            if(message.contains("E_OWNER_")||message.contains("E_SOURCE_ACCOUNT_CHANGED")||message.contains("E_MEDIA_CHANGED")
+            if(message.contains("E_OWNER_")||message.contains("E_TATO_CONSENT_REQUIRED")||message.contains("E_TATO_BINDING")||message.contains("E_SOURCE_ACCOUNT_CHANGED")||message.contains("E_MEDIA_CHANGED")
                 ||message.contains("E_MISSING_MEDIA")||message.contains("E_NO_THUMBNAIL")||message.contains("E_RPC_TIMEOUT")
                 ||message.contains("E_TELEGRAM_FLOOD_WAIT_")||message.contains("E_TELEGRAM_TIMEOUT")||message.contains("E_TELEGRAM_CANCELLED")
                 ||message.contains("E_TELEGRAM_NO_THUMBNAIL")||message.contains("E_TELEGRAM_PEER_MISMATCH")
                 ||message.contains("E_RPC_401")||message.contains("E_RPC_403"))return false;
             if(failure instanceof IOException||failure.getClass().getName().equals("android.os.DeadObjectException")
-                ||message.contains("E_CONNECTOR_UNAVAILABLE")||message.contains("E_CONNECTOR_STARTUP")||message.contains("E_LAB_UNAVAILABLE"))temporary=true;
+                ||message.contains("E_CONNECTOR_UNAVAILABLE")||message.contains("E_CONNECTOR_STARTUP")||message.contains("E_TATO_UNAVAILABLE"))temporary=true;
         }
         return temporary;
     }
