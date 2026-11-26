@@ -1,9 +1,22 @@
 # Validation
 
-## Source and build checks
+## Telegram connector 1.2
 
-The gallery is version 2.18 (`versionCode 20`). The Telegram connector is
-version 1.1 (`versionCode 2`).
+The chat selector loads the main list and archive automatically. Regression
+tests cover private groups and channels, inaccessible entries in a response,
+protected chats, cursor progress, and a page of 100 dialogs.
+
+Go module verification, tests, and host compilation passed. Android checks
+reported 93 gallery tests and 5 connector tests with no failures, and release
+Lint passed for both modules. The ARM64 release APK packaged the rebuilt engine
+with 16 KiB alignment and uses the same production certificate as connector 1.1
+and gallery 2.18. The chat-list cases were tested with synthetic Telegram
+responses.
+
+## Original 2.18 and 1.1 source and build checks
+
+The checks in this section cover gallery 2.18 (`versionCode 20`) and Telegram
+connector 1.1 (`versionCode 2`).
 
 Checks run on November 24, 2026 produced these results:
 
@@ -29,7 +42,7 @@ They remain known issues; a successful build does not resolve those warnings.
 Tests use synthetic values, in-memory stores, and interface doubles.
 The source checks cover build outputs and source distribution, not a live account.
 
-## Public release checks
+## Original 2.18 and 1.1 public release checks
 
 The production release candidates were checked separately from the debug builds:
 
