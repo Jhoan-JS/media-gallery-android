@@ -11,8 +11,9 @@ you will see on screen.
 
 ## Get started
 
-Gallery **2.18** and Telegram connector **1.1** require **Android 12 or later
-(API 31)**. The release APKs target **ARM64 (`arm64-v8a`)** phones and tablets.
+The installable **2.18** release pairs Gallery with Telegram Connector **1.1**.
+The APKs target **ARM64 (`arm64-v8a`)** phones and tablets running **Android 12
+or later (API 31)**. The source tree also has newer builds described below.
 
 1. Open [Releases](https://github.com/Jhoan-JS/media-gallery-android/releases).
    Use the two APKs attached to the same release and check them against its
@@ -41,12 +42,22 @@ primary user; other secondary user IDs are not supported by this version.
 
 ## Optional web sources
 
-Gallery 2.27 and Web Connector 1.6 support Gelbooru and Rule34.xxx in the source
-picker. Each site stays disabled until configured on the device. Images and
-videos share one feed that loads more as you scroll. Filters are next to search,
-and thumbnail size and framing are under the site's settings. Open the star
-next to the source controls to save and reuse named searches.
+Gallery 2.28 supports Gelbooru and Rule34.xxx alongside Telegram in the
+optional **Conector de fuentes** 2.0. It updates the Telegram connector package.
+Configure sources from **Fuentes** in Gallery. Each site stays disabled until
+configured on the device. The existing Web Connector 1.6 remains usable during
+the transition.
+
+The gallery returns to the last library after unlock. **Biblioteca**, **Guardado**,
+**Descargas**, and **Fuentes** stay in the same places across sources. Filters sit
+next to search, and thumbnail size and framing are in **Ajustes**. Use
+**Búsquedas guardadas** or the star in a web library to reuse named searches.
 The [connector guide](webconnector/README.md) covers setup, privacy and limits.
+
+The optional isolated build of Gallery 2.30 brings Telegram and web setup into
+**Fuentes**. It runs source networking through a compatible companion and keeps
+its credentials in encrypted Gallery storage. See the [build guide](docs/build.md#isolated-sources)
+for the open source components that support this configuration.
 
 ## What works without an account
 
@@ -92,8 +103,8 @@ checks to run before submitting a change.
 
 ## Privacy and limits
 
-The gallery has no `INTERNET` permission. The Telegram connector connects to
-Telegram to authenticate and fetch selected content. Catalogs, cached media,
+The gallery has no `INTERNET` permission. Source companions connect to Telegram
+and enabled websites to fetch selected content. Catalogs, cached media,
 and connector sessions stay in private app storage, using SQLCipher, AES-GCM,
 and Android Keystore. The apps require matching signatures and explicit
 authorization for their local connection.

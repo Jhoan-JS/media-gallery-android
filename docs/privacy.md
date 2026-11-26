@@ -18,9 +18,16 @@ privileged accessibility access, or possession of an authorized signing key.
 
 ## Network and connectors
 
-The gallery has no `INTERNET` permission. The Telegram connector uses the
-network to authenticate and request selected Telegram content. It stores its
-own session encrypted on the device; it does not reuse the official app's session.
+The gallery has no `INTERNET` permission. Source companions use the network
+to authenticate and request selected Telegram content or query enabled websites.
+The Telegram session is separate from the official app's session.
+
+Standalone companions store encrypted settings and session data in their own
+app storage. In the [isolated configuration](build.md#isolated-sources), Gallery
+stores them and the isolated worker processes network traffic. The companion's
+socket service limits outbound destinations and opens connections for that
+worker. Enabled websites receive the searches sent to them and the requests
+needed to retrieve media.
 
 Selecting chats and authorizing the gallery are separate steps. Updating the
 selection requires authorization again. Intentionally opening media can report

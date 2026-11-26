@@ -1,12 +1,25 @@
 # Optional Web Connector
 
-Gallery 2.27 and Web Connector 1.6 support Rule34.xxx and Gelbooru. Install both
-APK files in the same Android user with the same signing certificate. Android 12
-or later is required. Telegram Connector 1.1 and the local Tato interface use
-their existing protocols.
+Rule34.xxx and Gelbooru are optional sources in Gallery. Install Gallery and
+Sources Connector 2.0 (**Conector de fuentes**) in the same Android user with
+the same signing certificate. Android 12 or later is required. The standalone
+Web Connector 1.6 can coexist with Sources Connector 2.0.
+
+Gallery 2.30's [isolated worker configuration](../docs/build.md#isolated-sources)
+uses the same site support. Setup is inside Gallery under **Fuentes**, and the
+encrypted API credentials are stored by Gallery.
+
+If an existing standalone connector already has access, Gallery can use it
+while the corresponding source is unconfigured in Sources Connector. To move
+the source, enter its credentials in Gallery's connection flow using the same
+site account ID. The connectors keep separate Android Keystore entries and do
+not transfer credentials. Gallery selects the new connection at the next
+library entry or after setup and keeps the chosen connector while the viewer
+is open. Revoking a source in Sources Connector stops its use in Gallery. To
+remove the old API key as well, use the old Web Connector's revoke action.
 
 1. Unlock the gallery and choose **Gelbooru** or **Rule34.xxx** in the source picker.
-2. Tap **Conectar**. Enter the selected site's account ID and API key on the
+2. Open the source connection settings. Enter the selected site's account ID and API key on the
    connector screen, then tap **Habilitar y autorizar**. Gelbooru lists these
    values under **API Access Credentials** in its account options.
    The gallery cannot read the key.
@@ -59,10 +72,11 @@ ETag and byte ranges for video.
 ## Testing
 
 Run :app:testDebugUnitTest, :telegram:testDebugUnitTest and
-:webconnector:testDebugUnitTest. A debug-only fixture transport can substitute
-synthetic responses for all HTTP calls when assembled with **-PwebFixture**.
+:webconnector:testDebugUnitTest. Build the common debug connector with
+`-PwebFixture` to exercise synthetic responses without real network requests.
 Generate a PNG and a seekable MP4 named **fixture.png** and **fixture.mp4** in
-**.qa/web-fixture**. Use synthetic credentials in an isolated emulator.
+**.qa/web-fixture**, or pass the directory using `-PwebFixtureAssets`. The debug
+build takes only those two assets. Use synthetic credentials in an isolated emulator.
 Use **fixture_gallery** for Rule34.xxx or **fixture_gelbooru** with the
 key **gel_fixture_key** for Gelbooru. The fixture assets and transport are excluded from
 release APKs.

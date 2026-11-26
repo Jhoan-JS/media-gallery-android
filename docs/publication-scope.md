@@ -1,12 +1,16 @@
 # Repository scope
 
-This repository contains gallery **2.18** (`versionCode 20`) and Telegram
-connector **1.1** (`versionCode 2`).
+The source tree contains the Gallery, the Telegram and Web companions, and the
+optional isolated source worker. See the [build guide](build.md) for the available
+configurations and [Releases](https://github.com/Jhoan-JS/media-gallery-android/releases)
+for published APKs.
 
 | Path | Contents |
 | --- | --- |
 | `app` | Gallery, encrypted storage, media viewer, imports, organization, and unit tests |
 | `telegram` | Android connector and the Go engine sources |
+| `webconnector` | Web connector and shared web transport |
+| `isolated` | Local Android interfaces for the isolated source worker |
 | `connectors/tato` | Documentation of the local provider interface |
 | `tools` | Public model preparation and source-content checks |
 | `licenses` | Retained third-party notices |

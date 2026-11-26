@@ -73,6 +73,28 @@ The root script generates a disposable key under `.qa` for local debug builds.
 It is shared by both apps so their signature permissions work. These debug
 APKs do not update the public production-signed release or old lab installations.
 
+## Isolated sources
+
+Gallery 2.30 can use the project's isolated source worker for Telegram and Web.
+The worker handles network protocol traffic and Gallery keeps the encrypted
+session and settings. Existing sessions and web credentials remain in their
+original packages. Set up the same accounts from **Fuentes** when moving to
+this configuration.
+
+Build the open source worker and Gallery for an ARM64 test device with a
+single signing identity:
+
+~~~powershell
+./telegram/build-engine.ps1 -IsolatedWorker
+gradle :telegram:assembleRelease -PisolatedWorker -PisolatedEngineAar=.qa/tg-tools/isolated-tgengine-arm64.aar
+gradle :app:assembleRelease -PisolatedClient -PqaIsolatedHost=local.ttlab.telegram
+~~~
+
+The worker build uses the `local.ttlab.telegram` package. Use a dedicated test
+device or emulator so the worker cannot replace an existing standalone connector
+signed with the same key. The worker handles Telegram and Web. See the
+[Tato interface](../connectors/tato/README.md) for authorized implementations.
+
 ## Release signing
 
 Release builds are unsigned by default. Sign both APKs with the same persistent
