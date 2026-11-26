@@ -24,10 +24,10 @@ The gallery includes a consumer of the existing Tato provider interface.
 An installable Tato connector requires an implementation supplied by the
 client owner or an otherwise authorized distribution.
 
-This repository does not include the Tato client, extracted client classes,
-DEX files, native client libraries, connector implementation, patches,
-repackagers, session material, or instructions to bypass protections.
-See the [interface contract](../connectors/tato/README.md).
+The Git source tree documents the [local interface](../connectors/tato/README.md).
+The separately distributed Conector de fuentes 3.1 APK contains the third-party
+Tato runtime and its bundled notices. The source tree excludes its client files,
+patches, private packaging tools, and session material.
 
 ## Build inputs and release files
 

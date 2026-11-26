@@ -4,27 +4,26 @@ An Android gallery for browsing photos and videos without downloading an entire
 chat library first. It supports on-demand playback, encrypted offline downloads,
 local file imports, search, and organization across sources.
 
-Start with **Local files** if you only want to use media on your phone. Add the
-Telegram connector when you want to browse selected chats. The app interface is
+Start with **Local files** if you only want to use media on your phone. Add
+**Conector de fuentes** to browse Tato, Telegram, and web sources. The app interface is
 currently in Spanish; this documentation uses English and includes the labels
 you will see on screen.
 
 ## Get started
 
-The installable **2.18** release pairs Gallery with Telegram Connector **1.1**.
-The APKs target **ARM64 (`arm64-v8a`)** phones and tablets running **Android 12
-or later (API 31)**. The source tree also has newer builds described below.
+Gallery **2.30** pairs with **Conector de fuentes 3.1**. The pair targets
+**ARM64 (`arm64-v8a`)** phones and tablets running **Android 12L or later**.
 
-1. Open [Releases](https://github.com/Jhoan-JS/media-gallery-android/releases).
-   Use the two APKs attached to the same release and check them against its
-   `SHA256SUMS.txt` file.
-2. Install `MediaGallery-2.18-arm64-v8a.apk`. Install
-   `TelegramConnector-1.1-arm64-v8a.apk` as well if you need Telegram.
-   Keep both apps in the same Android user or profile.
+1. Open the [2.30 release](https://github.com/Jhoan-JS/media-gallery-android/releases/tag/gallery-v2.30-sources-v3.1)
+   and check the files against `SHA256SUMS.txt`.
+2. To use online sources, install `ConectorFuentes-3.1-arm64-v8a.apk` first.
+   Install `MediaGallery-2.30-arm64-v8a.apk` in the same Android user or profile.
 3. Open the gallery and set a PIN.
 4. Choose **Archivos propios** (Local files), then **Importar** (Import), to
    copy photos and videos you select into encrypted app storage.
-5. For Telegram, follow the [connector setup guide](telegram/README.md).
+5. To connect sources, open **Fuentes**, choose the source, and use
+   **Configurar conexión**. For Telegram or Web, set up the same account again
+   if you are moving from the standalone connector.
 
 **Existing lab installations:** the public APKs use a new production signing
 certificate. Android cannot install them as updates over older lab-signed apps.
@@ -70,9 +69,9 @@ Telegram browsing requires a Telegram account, your own API ID and API hash,
 and permission for the chats you select. The connector keeps a separate
 session from the official Telegram app.
 
-Tato requires a separately authorized compatible connector. This repository
-contains the gallery's consumer and the [local interface documentation](connectors/tato/README.md),
-but does not distribute a Tato client, connector APK, patch, or repackager.
+Tato requires a compatible connector and account authorization. The 3.1 release
+asset bundles the Tato runtime with the project's source services. Git contains
+the gallery's consumer and the [local interface documentation](connectors/tato/README.md).
 
 ## Browsing and organization
 
@@ -120,7 +119,7 @@ with the same key can weaken these boundaries.
 ## License
 
 Project-owned code is [MIT licensed](LICENSE), copyright Jhoan Marte.
-Dependencies, model assets, and their notices keep their own licenses.
+Dependencies, model assets, and the Tato runtime keep their own licenses and notices.
 See [License scope](LICENSE_STATUS.md) and [Third-party notices](THIRD_PARTY_NOTICES.md).
 
 Tato and Telegram are names used to identify integrations. This project is not

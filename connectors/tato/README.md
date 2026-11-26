@@ -4,11 +4,10 @@ The gallery consumes an Android content provider implemented by a compatible
 Tato connector. The consumer is in
 [Source.java](../../app/src/main/java/local/ttlab/gallery/Source.java).
 
-This repository documents that interface only. It does not include a Tato
-client, connector APK, extracted classes, DEX files, signing keys, patches,
-or repackaging scripts. A usable connector must come from the client owner
-or an otherwise authorized distribution. There is no public Tato installation
-package in this release.
+The Git source tree documents this interface and includes the Gallery-side
+consumer. Sources Connector 3.1 is distributed separately as a release APK.
+Its bundled Tato runtime and notices retain their own terms. The client files,
+signing material, patches, and packaging tools stay outside the source tree.
 
 ## Permissions and authorization
 
